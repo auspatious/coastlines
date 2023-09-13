@@ -58,13 +58,15 @@ def http_to_s3_url(http_url):
     return s3_url
 
 
-def load_and_mask_data_with_stac(config: dict, query: dict, log) -> xr.Dataset:
+def load_and_mask_data_with_stac(
+    config: dict, query: dict, log: callable
+) -> xr.Dataset:
     stac_api_url = config["STAC config"]["stac_api_url"]
     collections = config["STAC config"]["stac_collections"]
 
-    log.info(f"Loading data from {stac_api_url} for collections {collections}")
-
+    log.info(f"Finding data from {stac_api_url} for collections {collections}")
     client = Client.open(stac_api_url)
+
     # Filtering for Tier1 data only
     items = list(
         client.search(
@@ -82,12 +84,8 @@ def load_and_mask_data_with_stac(config: dict, query: dict, log) -> xr.Dataset:
         raise CoastlinesException(
             f"Found {n_items} items. This is not enough to do a reliable process."
         )
+    log.info(f"Found {len(items)} items. Using epsg:{most_common_epsg} to lazy load data.")
 
-    log.info(f"Found {len(items)} items. Using epsg:{most_common_epsg} to load data.")
-
-    # REMINDER!
-    # TODO: Add a query for Tier 1 data ONLY!
-    # /REMINDER!
     ds = load(
         items,
         bands=["green", "swir16", "qa_pixel"],
@@ -95,7 +93,7 @@ def load_and_mask_data_with_stac(config: dict, query: dict, log) -> xr.Dataset:
         crs=most_common_epsg,
         resolution=30,
         stac_cfg=STAC_CFG,
-        chunks={"x": 2000, "y": 2000, "time": 1},
+        chunks={"x": 10000, "y": 10000, "time": 1},
         group_by="solar_day",
         patch_url=http_to_s3_url,
         fail_on_error=False,
@@ -135,40 +133,68 @@ def load_and_mask_data_with_stac(config: dict, query: dict, log) -> xr.Dataset:
     return ds
 
 
-def generate_yearly_composites(
-    ds: xr.Dataset,
-    tide_cutoff_min: float,
-    tide_cutoff_max: float,
-    start_year: int,
-    end_year: int,
+def filter_by_tides(
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float, use_highres: bool = True
 ) -> xr.Dataset:
-    # Load everything into memory once
-    ds = ds.compute()
+    if use_highres:
+        tides, tides_lowres = pixel_tides(
+            ds, resample=True, directory=tide_data_location
+        )
+    else:
+        tides_lowres = pixel_tides(
+            ds, resample=False, directory=tide_data_location
+        )
 
-    # Filter out the extreme high- and low-tide pixels
-    extreme_tides = (ds.tide_m <= tide_cutoff_min) | (ds.tide_m >= tide_cutoff_max)
-    ds = ds.where(~extreme_tides)
+    tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
+        ds, tides_lowres, tide_centre=tide_centre, reproject=use_highres
+    )
+
+    if use_highres:
+        extreme_tides = (tides <= tide_cutoff_min) | (tides >= tide_cutoff_max)
+        # Filter out the extreme high- and low-tide pixels
+        ds = ds.where(~extreme_tides)
+    else:
+        extreme_tides = (tides_lowres <= tide_cutoff_min) | (
+            tides_lowres >= tide_cutoff_max
+        )
 
     # Filter out empty scenes
-    ds = ds.sel(time=extreme_tides.sum(dim=["x", "y"]) == 0)
+    filtered = ds.sel(time=extreme_tides.sum(dim=["x", "y"]) == 0)
 
+    return filtered
+
+
+def generate_yearly_composites(
+    ds: xr.Dataset,
+    start_year: int,
+    end_year: int
+) -> xr.Dataset:
     # Store a list of output arrays and years, knowing we might lose empty years
     yearly_ds_list = []
-    years = range(start_year, end_year + 1)
+    years = []
 
     # We've found data for start_year - 1 through to end_year + 1.
     # This range includes only the years we want to process...
-    for year in years:
-        one_year = ds.sel(time=str(year))
-        three_years = ds.sel(time=slice(str(year - 1), str(year + 1)))
+    for year in range(start_year, end_year + 1):
+        try:
+            one_year = ds.sel(time=str(year))
+            three_years = ds.sel(time=slice(str(year - 1), str(year + 1)))
 
-        year_summary = one_year.mndwi.median(dim="time").to_dataset()
-        year_summary["count"] = one_year.mndwi.count(dim="time")
-        year_summary["stdev"] = one_year.mndwi.std(dim="time")
-        # And a gapfill summary for the years either side of the year we're processing
-        year_summary["gapfill"] = three_years.mndwi.median(dim="time")
+            # Get the median and other statistics for this year
+            year_summary = one_year.mndwi.median(dim="time").to_dataset()
+            year_summary["count"] = one_year.mndwi.count(dim="time")
+            year_summary["stdev"] = one_year.mndwi.std(dim="time")
 
-        yearly_ds_list.append(year_summary)
+            # And a gapfill summary for the three years
+            year_summary["gapfill"] = three_years.mndwi.median(dim="time")
+
+            years.append(year)
+            yearly_ds_list.append(year_summary)
+        except KeyError:
+            pass
+
+    if len(yearly_ds_list) == 0:
+        raise CoastlinesException("No data found for any years.")
 
     time_var = xr.Variable("year", years)
 
@@ -213,8 +239,8 @@ def process_coastlines(
     index_threshold: float,
     buffer: float,
     overwrite: bool,
-    log,
-    use_datacube: bool = False,
+    log: callable,
+    load_early: bool = False,
 ):
     # Output location checking
     output_location = Path(output_location)
@@ -241,34 +267,36 @@ def process_coastlines(
         "datetime": f"{start_year - 1}/{end_year + 1}",
     }
 
-    # Load data
+    # Load data all lazy like using dask
     ds = None
-    if not use_datacube:
+    if config.get("STAC config") is not None:
         ds = load_and_mask_data_with_stac(config, query, log)
+    else:
+        raise NotImplementedError("Only STAC loading is supported")
 
     # Calculate tides and combine with the data
-    log.info("Modelling tides")
-    ds["tide_m"], tides_lowres = pixel_tides(
-        ds, resample=True, directory=tide_data_location
+    log.info("Filtering by tides")
+    n_times = len(ds.time)
+    ds = filter_by_tides(ds, tide_data_location, tide_centre, use_highres=False)
+    log.info(
+        f"Dropped {n_times - len(ds.time)} out of {n_times} times due to extreme tides"
     )
 
-    # Create annual composites including gapfilling sparse years
-    log.info("Generating annual mosaics using dask lazy loading")
-    tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
-        ds, tides_lowres, tide_centre=tide_centre
-    )
-    yearly_ds = generate_yearly_composites(
-        ds, tide_cutoff_min, tide_cutoff_max, start_year, end_year
-    )
+    if load_early:
+        log.info("Loading daily dataset into memory")
+        ds = ds.compute()
 
-    log.info("Loading combined dataset into memory...")
-    combined_ds = yearly_ds.where(
-        yearly_ds["count"] > 5, yearly_ds["gapfill"]
-    ).compute()
+    # Loading combined yearly composites
+    log.info("Generating yearly composites")
+    yearly_ds = generate_yearly_composites(ds, start_year, end_year)
+    combined_ds = yearly_ds.where(yearly_ds["count"] > 5, yearly_ds["gapfill"])
+
+    if not load_early:
+        log.info("Loading annual dataset into memory")
+        combined_ds = combined_ds.compute()
     del combined_ds["gapfill"]
-    log.info("Finished loading into memory")
 
-    # TODO: optionally write the combined_ds to a Zarr file somewhere
+    # TODO: Maybe write the combined_ds to a Zarr file somewhere
 
     # Coastal mask modifications
     log.info("Loading vectors and pre-processing contours")
@@ -316,6 +344,7 @@ def process_coastlines(
         ]
     )
 
+    # Calculate coastal change... this is very slow when data is busy.
     points_gdf = calculate_regressions(points_gdf)
 
     # Add count and span of valid obs, Shoreline Change Envelope (SCE),
@@ -326,7 +355,6 @@ def process_coastlines(
     )
 
     # TODO: change output location to work for S3 or local file and to be parameterised
-    output_location = Path("data/processed")
 
     log.info(f"Writing to files at {output_location}")
     export_results(
@@ -361,6 +389,7 @@ def process_coastlines(
 @click_aws_unsigned
 @click_aws_request_payer
 @click_overwrite
+@click.option("--load-early/--no-load-early", default=True)
 def cli(
     config_path,
     study_area,
@@ -376,9 +405,10 @@ def cli(
     aws_unsigned,
     aws_request_payer,
     overwrite,
+    load_early,
 ):
-    log = configure_logging(f"Coastlines {study_area}")
-    log.info(f"Starting work on study area {study_area}")
+    log = configure_logging("Coastlines")
+    log.info(f"Starting work on study area {study_area} for years {start_year}-{end_year}")
 
     # Load analysis params from config file
     config = load_config(config_path=config_path)
@@ -402,7 +432,7 @@ def cli(
 
     log.info("Starting Dask")
     # Set up Dask
-    start_local_dask(n_workers=8, threads_per_worker=4, mem_safety_margin="2G")
+    _ = start_local_dask(n_workers=8, threads_per_worker=4, mem_safety_margin="2G")
 
     try:
         log.info("Starting processing...")
@@ -419,7 +449,8 @@ def cli(
             index_threshold,
             buffer,
             overwrite,
-            log=log,
+            log,
+            load_early=load_early,
         )
 
     except Exception as e:

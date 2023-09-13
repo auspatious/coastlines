@@ -244,7 +244,7 @@ def load_water_index(
     return ds[["mndwi"]]
 
 
-def tide_cutoffs(ds, tides_lowres, tide_centre=0.0, resampling="bilinear"):
+def tide_cutoffs(ds, tides_lowres, tide_centre=0.0, resampling="bilinear", reproject=True):
     """
     Based on the entire time-series of tide heights, compute the max
     and min satellite-observed tide height for each pixel, then
@@ -292,12 +292,13 @@ def tide_cutoffs(ds, tides_lowres, tide_centre=0.0, resampling="bilinear"):
     tide_cutoff_max = tide_centre + tide_cutoff_buffer
 
     # Reproject into original geobox
-    tide_cutoff_min = tide_cutoff_min.odc.reproject(
-        ds.odc.geobox, resampling=resampling
-    )
-    tide_cutoff_max = tide_cutoff_max.odc.reproject(
-        ds.odc.geobox, resampling=resampling
-    )
+    if reproject:
+        tide_cutoff_min = tide_cutoff_min.odc.reproject(
+            ds.odc.geobox, resampling=resampling
+        )
+        tide_cutoff_max = tide_cutoff_max.odc.reproject(
+            ds.odc.geobox, resampling=resampling
+        )
 
     return tide_cutoff_min, tide_cutoff_max
 

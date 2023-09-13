@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+
 from setuptools import find_packages, setup
 
 # Where are we?
@@ -13,7 +14,7 @@ tests_require = [
 ]
 
 extras = {
-    'test': tests_require,
+    "test": tests_require,
 }
 
 # What packages are required for this module to be executed?
@@ -22,8 +23,8 @@ REQUIRED = [
     "affine",
     "botocore",
     "click",
-    "datacube",
-    "dea_tools",
+    "datacube[s3,performance]",
+    "dea_tools==0.2.8.dev128",
     "Fiona",
     "geopandas",
     "matplotlib",
@@ -31,13 +32,14 @@ REQUIRED = [
     "odc-geo",
     "odc_ui",
     "pandas",
-    "pygeos",
+    "pyarrow",
     "pyproj",
     "pyTMD",
     "python_geohash",
     "pytz",
     "PyYAML",
     "rasterio",
+    "rioxarray",
     "scikit_image",
     "scikit_learn",
     "scipy",
@@ -76,6 +78,8 @@ setup_kwargs = {
             "deacoastlines-raster = coastlines.raster:generate_rasters_cli",
             "deacoastlines-vector = coastlines.vector:generate_vectors_cli",
             "deacoastlines-continental = coastlines.continental:continental_cli",
+            "coastlines-combined = coastlines.combined:cli",
+            "coastlines-print-tiles = coastlines.print_tiles:cli",
         ]
     },
 }

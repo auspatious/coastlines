@@ -1,0 +1,7 @@
+Input files:
+    grid_path: data/raw/vietnam_tiles.geojson
+    modifications_path: data/raw/empty_modifications.geojson
+STAC config:
+    stac_api_url: "https://landsatlook.usgs.gov/stac-server"
+    stac_collections: 
+        - "landsat-c2l2-sr"

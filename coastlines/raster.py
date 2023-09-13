@@ -21,34 +21,37 @@
 import os
 import sys
 import warnings
-from functools import partial
 from collections import Counter
+from functools import partial
 
-import pytz
-import dask
 import click
-import numpy as np
-import pandas as pd
-import xarray as xr
-import geopandas as gpd
-from affine import Affine
-from shapely.geometry import shape
-
 import datacube
+import geopandas as gpd
+import numpy as np
 import odc.algo
 import odc.geo.xr
+import xarray as xr
 from datacube.utils.aws import configure_s3_access
 from datacube.utils.cog import write_cog
-from datacube.utils.geometry import CRS, GeoBox, Geometry
-from datacube.utils.masking import make_mask
+from datacube.utils.geometry import Geometry
 from datacube.virtual import catalog_from_file
-
+from dea_tools.coastal import pixel_tides
 from dea_tools.dask import create_local_dask_cluster
-from dea_tools.spatial import hillshade, sun_angles
-from dea_tools.coastal import model_tides, pixel_tides
 from dea_tools.datahandling import parallel_apply
+from dea_tools.spatial import hillshade, sun_angles
 
-from coastlines.utils import configure_logging, load_config
+from coastlines.utils import (
+    click_aws_unsigned,
+    click_buffer,
+    click_config_path,
+    click_end_year,
+    click_overwrite,
+    click_start_year,
+    click_study_area,
+    click_tide_centre,
+    configure_logging,
+    load_config,
+)
 
 # Hide warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -442,9 +445,7 @@ def export_annual_gapfill(
 
     # Iterate through each year in the dataset, starting at one year before
     for year in np.arange(start_year - 2, end_year + 1):
-
         try:
-
             # Load data for the subsequent year; drop tide variable as
             # we do not need to create annual composites from this data
             future_ds = load_tidal_subset(
@@ -454,7 +455,6 @@ def export_annual_gapfill(
             ).drop_vars("tide_m")
 
         except KeyError:
-
             # Create empty array if error is raised due to no data being
             # available for time period
             future_ds = xr.DataArray(
@@ -467,7 +467,6 @@ def export_annual_gapfill(
         # If the current year var contains data, combine these observations
         # into annual median composites and export GeoTIFFs
         if current_ds:
-
             # Generate composite
             tidal_composite(
                 current_ds,
@@ -481,7 +480,6 @@ def export_annual_gapfill(
         # combine these three years of observations into a single median
         # 3-year gapfill composite
         if previous_ds and current_ds and future_ds:
-
             # Concatenate the three years into one xarray.Dataset
             gapfill_ds = xr.concat([previous_ds, current_ds, future_ds], dim="time")
 
@@ -503,7 +501,15 @@ def export_annual_gapfill(
 
 
 def generate_rasters(
-    dc, config, study_area, raster_version, start_year, end_year, tide_centre, buffer, log=None
+    dc,
+    config,
+    study_area,
+    raster_version,
+    start_year,
+    end_year,
+    tide_centre,
+    buffer,
+    log=None,
 ):
     #####################################
     # Connect to datacube, Dask cluster #
@@ -565,12 +571,11 @@ def generate_rasters(
     # Add  this new data as a new variable in our satellite dataset to allow
     # each satellite pixel to be analysed and filtered/masked based on the
     # tide height at the exact moment of satellite image acquisition.
-    try: 
+    try:
         ds["tide_m"], tides_lowres = pixel_tides(ds, resample=True)
         log.info(f"Study area {study_area}: Finished modelling tide heights")
-        
+
     except FileNotFoundError:
-    
         log.exception(f"Study area {study_area}: Unable to access tide modelling files")
         sys.exit(2)
 
@@ -608,23 +613,8 @@ def generate_rasters(
 
 
 @click.command()
-@click.option(
-    "--config_path",
-    type=str,
-    required=True,
-    help="Path to the YAML config file defining inputs to "
-    "use for this analysis. These are typically located in "
-    "the `dea-coastlines/configs/` directory.",
-)
-@click.option(
-    "--study_area",
-    type=str,
-    required=True,
-    help="A string providing a unique ID of an analysis "
-    "gridcell that will be used to run the analysis. This "
-    'should match a row in the "id" column of the provided '
-    "analysis gridcell vector file.",
-)
+@click_config_path
+@click_study_area
 @click.option(
     "--raster_version",
     type=str,
@@ -633,66 +623,12 @@ def generate_rasters(
     "for output raster directories and files. This can be "
     "used to version different analysis outputs.",
 )
-@click.option(
-    "--start_year",
-    type=int,
-    default=2000,
-    help="The first annual shoreline you wish to be included "
-    "in the final outputs. To allow low data pixels to be "
-    "gapfilled with additional satellite data from neighbouring "
-    "years, the full timeseries of satellite data loaded in this "
-    "step will include one additional year of preceding satellite data "
-    "(i.e. if `--start_year 2000`, satellite data from 1999 onward "
-    "will be loaded for gapfilling purposes). Because of this, we "
-    "recommend that at least one year of satellite data exists in "
-    "your datacube prior to `--start_year`.",
-)
-@click.option(
-    "--end_year",
-    type=int,
-    default=2020,
-    help="The final annual shoreline you wish to be included "
-    "in the final outputs. To allow low data pixels to be "
-    "gapfilled with additional satellite data from neighbouring "
-    "years, the full timeseries of satellite data loaded in this "
-    "step will include one additional year of ensuing satellite data "
-    "(i.e. if `--end_year 2020`, satellite data up to and including "
-    "2021 will be loaded for gapfilling purposes). Because of this, we "
-    "recommend that at least one year of satellite data exists in your "
-    "datacube after `--end_year`.",
-)
-@click.option(
-    "--tide_centre",
-    type=float,
-    default=0.0,
-    help="The central tide height used to compute the min and max tide "
-    "height cutoffs. Tide heights will be masked so all satellite "
-    "observations are approximately centred over this value. The "
-    "default is 0.0 which represents 0 m Above Mean Sea Level.",
-)
-@click.option(
-    "--buffer",
-    type=float,
-    default=0.05,
-    help="The distance (in degrees) to buffer the study area grid cell "
-    "extent. This buffer is important for ensuring that generated "
-    "rasters overlap along the boundaries of neighbouring study areas "
-    "so that we can extract seamless vector shorelines. Defaults to "
-    "0.05 degrees, or roughly 5 km at the equator.",
-)
-@click.option(
-    "--aws_unsigned/--no-aws_unsigned",
-    type=bool,
-    default=True,
-    help="Whether to use sign AWS requests for S3 access",
-)
-@click.option(
-    "--overwrite/--no-overwrite",
-    type=bool,
-    default=True,
-    help="Whether to overwrite tiles with existing outputs, "
-    "or skip these tiles entirely.",
-)
+@click_start_year
+@click_end_year
+@click_tide_centre
+@click_buffer
+@click_aws_unsigned
+@click_overwrite
 def generate_rasters_cli(
     config_path,
     study_area,
@@ -704,7 +640,6 @@ def generate_rasters_cli(
     aws_unsigned,
     overwrite,
 ):
-
     log = configure_logging(f"Coastlines raster generation for study area {study_area}")
 
     # Test if study area has already been run by checking if run status file exists

@@ -1,4 +1,4 @@
-FROM osgeo/gdal:ubuntu-small-3.4.1 as base
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.1
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
@@ -8,6 +8,8 @@ RUN apt-get update \
     build-essential \
     git \
     python3-pip \
+    # Convenience
+    wget nano \
     # For Psycopg2
     libpq-dev python3-dev \
     # For SSL
@@ -23,7 +25,6 @@ RUN apt-get update \
 # Environment can be whatever is supported by setup.py
 # so, either deployment, test
 ARG ENVIRONMENT=deployment
-# ARG ENVIRONMENT=test
 
 RUN echo "Environment is: $ENVIRONMENT"
 
@@ -31,10 +32,8 @@ COPY requirements.txt /tmp/
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r /tmp/requirements.txt \
     --no-binary rasterio \
-    --no-binary shapely \
-    --no-binary fiona \
-    # Extras
-    && pip install --no-cache-dir awscli requests
+    # --no-binary shapely \
+    --no-binary fiona
 
 # Set up a nice workdir and add the live code
 ENV APPDIR=/code
@@ -51,5 +50,5 @@ RUN if [ "$ENVIRONMENT" = "deployment" ] ; then\
 
 CMD ["python", "--version"]
 
-RUN  deacoastlines-raster --help \
-  && deacoastlines-vector --help
+RUN  coastlines-combined --help && \
+     coastlines-print-tiles --help

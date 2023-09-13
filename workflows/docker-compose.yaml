@@ -1,0 +1,7 @@
+version: "3.2"
+services:
+  coastlines:
+    image: ghcr.io/auspatious/dea-coastlines:0.0.0a3
+    volumes:
+      - /tmp/tide_models:/tmp/tide_models
+      - ./data/processed:/code/data/processed

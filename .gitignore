@@ -12,3 +12,6 @@
 !**.github
 !*.md
 !tests/*.png
+
+coastlines/_version.py
+build

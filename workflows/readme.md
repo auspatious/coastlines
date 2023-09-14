@@ -15,7 +15,7 @@ download the tide model data.
 wget https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/vietnam_tide_models.zip \
               -O /tmp/vietnam_tide_models.zip && \
             unzip /tmp/vietnam_tide_models.zip -d /tmp/tide_models_temp && \
-            mv /tmp/tide_models_temp/tide_models_clipped /tmp/tide_models
+            mv /tmp/tide_models_temp/tide_models_clipped /home/jovyan/tide_models
 ```
 
 After that, run with the below.
@@ -27,7 +27,7 @@ bucket and should be able to write to the destination.
 docker-compose run coastlines \
     coastlines-combined \
         --config-path=configs/vietnam_coastlines_config.yaml \
-        --study-area="13,45" \
+        --study-area="9,19" \
         --tide-data-location="/tmp/tide_models" \
         --output-version="0.0.0" \
         --output-location="data" \

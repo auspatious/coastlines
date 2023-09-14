@@ -15,7 +15,7 @@ download the tide model data.
 wget https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/vietnam_tide_models.zip \
               -O /tmp/vietnam_tide_models.zip && \
             unzip /tmp/vietnam_tide_models.zip -d /tmp/tide_models_temp && \
-            mv /tmp/tide_models_temp/tide_models_clipped /home/jovyan/tide_models
+            mv /tmp/tide_models_temp/tide_models_clipped ~/tide_models
 ```
 
 After that, run with the below.
@@ -37,4 +37,22 @@ docker-compose run coastlines \
         --aws-request-payer \
         --no-aws-unsigned \
         --overwrite
+```
+
+And for writing to S3:
+
+```bash
+docker-compose run coastlines \
+    coastlines-combined \
+        --config-path=configs/vietnam_coastlines_config.yaml \
+        --study-area="9,19" \
+        --tide-data-location="~/tide_models/" \
+        --output-version="0.0.0" \
+        --output-location="s3://files.auspatious.com/coastlines/data/" \
+        --start-year="2020" \
+        --end-year="2022" \
+        --baseline-year="2021" \
+        --aws-request-payer \
+        --no-aws-unsigned \
+        --no-overwrite
 ```

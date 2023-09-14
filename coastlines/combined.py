@@ -380,7 +380,9 @@ def process_coastlines(
         lambda x: all_time_stats(x, initial_year=start_year), axis=1
     )
 
-    # TODO: change output location to work for S3 or local file and to be parameterised
+    # Clip to the study area
+    points_gdf = points_gdf.clip(geometry.geom)
+    contours_gdf = contours_gdf.clip(geometry.geom)
 
     log.info(f"Writing to files at {output_location}")
     export_results(

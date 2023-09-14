@@ -10,6 +10,8 @@ from dea_tools.coastal import pixel_tides
 from odc.algo import erase_bad, mask_cleanup, to_f32
 from odc.stac import configure_s3_access, load
 from pystac_client import Client
+import boto3
+from botocore.errorfactory import ClientError
 
 from coastlines.raster import tide_cutoffs
 from coastlines.utils import (
@@ -58,6 +60,37 @@ def http_to_s3_url(http_url):
     return s3_url
 
 
+def path_is_s3(path: Path) -> bool:
+    return str(path).startswith("s3:/")
+
+
+def path_to_s3(path: Path) -> str:
+    return str(path).replace("s3:/", "s3://")
+
+
+def sanitise_tile_id(tile_id: str, zero_pad: bool = True) -> str:
+    out_tile_id = tile_id.replace(",", "_")
+    if zero_pad:
+        out_tile_id = out_tile_id.zfill(3)
+    return out_tile_id
+
+
+def get_output_path(
+    output_location: str,
+    output_version: str,
+    tile_id: str,
+    dataset_name: str,
+    extension: str,
+) -> Path:
+    output_path = (
+        Path(output_location)
+        / output_version
+        / f"{dataset_name}_{sanitise_tile_id(tile_id)}.{extension}"
+    )
+
+    return output_path
+
+
 def load_and_mask_data_with_stac(
     config: dict, query: dict, log: callable
 ) -> xr.Dataset:
@@ -84,7 +117,9 @@ def load_and_mask_data_with_stac(
         raise CoastlinesException(
             f"Found {n_items} items. This is not enough to do a reliable process."
         )
-    log.info(f"Found {len(items)} items. Using epsg:{most_common_epsg} to lazy load data.")
+    log.info(
+        f"Found {len(items)} items. Using epsg:{most_common_epsg} to lazy load data."
+    )
 
     ds = load(
         items,
@@ -134,16 +169,17 @@ def load_and_mask_data_with_stac(
 
 
 def filter_by_tides(
-    ds: xr.Dataset, tide_data_location: str, tide_centre: float, use_highres: bool = True
+    ds: xr.Dataset,
+    tide_data_location: str,
+    tide_centre: float,
+    use_highres: bool = True,
 ) -> xr.Dataset:
     if use_highres:
         tides, tides_lowres = pixel_tides(
             ds, resample=True, directory=tide_data_location
         )
     else:
-        tides_lowres = pixel_tides(
-            ds, resample=False, directory=tide_data_location
-        )
+        tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location)
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
         ds, tides_lowres, tide_centre=tide_centre, reproject=use_highres
@@ -165,9 +201,7 @@ def filter_by_tides(
 
 
 def generate_yearly_composites(
-    ds: xr.Dataset,
-    start_year: int,
-    end_year: int
+    ds: xr.Dataset, start_year: int, end_year: int
 ) -> xr.Dataset:
     # Store a list of output arrays and years, knowing we might lose empty years
     yearly_ds_list = []
@@ -210,17 +244,22 @@ def export_results(
     output_location: Path,
     study_area: str,
 ):
-    output_location = output_location / output_version
-    output_location.mkdir(parents=True, exist_ok=True)
+    output_contours = get_output_path(
+        output_location, output_version, study_area, "contours", "parquet"
+    )
+    output_points = get_output_path(
+        output_location, output_version, study_area, "points", "parquet"
+    )
 
-    output_contours = output_location / f"contours_{study_area}.parquet"
-    output_points = output_location / f"points_{study_area}.parquet"
+    if path_is_s3(output_contours):
+        output_contours = path_to_s3(output_contours)
+        output_points = path_to_s3(output_points)
+    else:
+        if output_contours.exists():
+            output_contours.unlink()
 
-    if output_contours.exists():
-        output_contours.unlink()
-
-    if output_points.exists():
-        output_points.unlink()
+        if output_points.exists():
+            output_points.unlink()
 
     points_gdf.to_parquet(output_points)
     contours_gdf.to_parquet(output_contours)
@@ -238,22 +277,9 @@ def process_coastlines(
     tide_data_location: str,
     index_threshold: float,
     buffer: float,
-    overwrite: bool,
     log: callable,
     load_early: bool = False,
 ):
-    # Output location checking
-    output_location = Path(output_location)
-    output_contours = (
-        output_location / output_version / f"contours_{study_area}.parquet"
-    )
-
-    if output_contours.exists() and not overwrite:
-        log.info(
-            f"Skipping study area {study_area} as output contours file already exists"
-        )
-        return
-
     # Study site geometry and config parsing
     geometry = get_study_site_geometry(config["Input files"]["grid_path"], study_area)
     log.info(f"Loaded geometry for study area {study_area}")
@@ -408,11 +434,56 @@ def cli(
     load_early,
 ):
     log = configure_logging("Coastlines")
-    log.info(f"Starting work on study area {study_area} for years {start_year}-{end_year}")
+    log.info(
+        f"Starting work on study area {study_area} for years {start_year}-{end_year}"
+    )
 
     # Load analysis params from config file
     config = load_config(config_path=config_path)
 
+    log.info("Checking output location")
+    output_location = Path(output_location)
+
+    if overwrite is False:
+        # We don't want to overwrite, so see if we've done this work already
+        output_contours = get_output_path(
+            output_location, output_version, study_area, "contours", "parquet"
+        )
+        output_points = get_output_path(
+            output_location, output_version, study_area, "points", "parquet"
+        )
+
+        if path_is_s3(output_location):
+            # Check if the outputs exist on S3 already
+            s3 = boto3.client("s3")
+            try:
+                s3.head_object(
+                    Bucket=output_location.parts[1],
+                    Key="/".join(output_contours.parts[2:]),
+                )
+                s3.head_object(
+                    Bucket=output_location.parts[1],
+                    Key="/".join(output_contours.parts[2:]),
+                )
+                log.info(
+                    f"Found existing output files at {output_location}. Skipping processing."
+                )
+                sys.exit(0)
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "403":
+                    raise CoastlinesException(
+                        "Permisions error when checking for existing output files on S3"
+                    )
+                pass
+        else:
+            # Check if the outputs exis on the file system
+            if output_contours.exists() and output_points.exists():
+                log.info(
+                    f"Found existing output files at {output_location}. Skipping processing."
+                )
+                sys.exit(0)
+
+    log.info("Checking configuration")
     virtual_product = config.get("Virtual product")
     stac_config = config.get("STAC config")
 
@@ -425,7 +496,7 @@ def cli(
         raise ValueError("Cannot set both aws_unsigned and aws_request_payer to True")
 
     log.info("Configuring S3 access")
-    # Do an opinionated configuration of S3
+    # Do an opinionated configuration of S3 for data reading
     configure_s3_access(
         cloud_defaults=True, aws_unsigned=aws_unsigned, requester_pays=aws_request_payer
     )
@@ -448,7 +519,6 @@ def cli(
             tide_data_location,
             index_threshold,
             buffer,
-            overwrite,
             log,
             load_early=load_early,
         )

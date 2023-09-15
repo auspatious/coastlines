@@ -244,7 +244,9 @@ def load_water_index(
     return ds[["mndwi"]]
 
 
-def tide_cutoffs(ds, tides_lowres, tide_centre=0.0, resampling="bilinear", reproject=True):
+def tide_cutoffs(
+    ds, tides_lowres, tide_centre=0.0, resampling="bilinear", reproject=True
+):
     """
     Based on the entire time-series of tide heights, compute the max
     and min satellite-observed tide height for each pixel, then

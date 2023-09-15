@@ -149,7 +149,9 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
         # Shift the tempfile to a final location
         if write_to_s3:
             s3 = boto3.client("s3")
-            s3.upload_file(temp_geopackage, output_geopackage.bucket, output_geopackage.key)
+            s3.upload_file(
+                temp_geopackage, output_geopackage.bucket, output_geopackage.key
+            )
         else:
             output_geopackage.parent.mkdir(parents=True, exist_ok=True)
             Path(temp_geopackage).rename(output_geopackage)

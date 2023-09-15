@@ -16,7 +16,6 @@ import sys
 
 import fiona
 import click
-import numpy as np
 import pandas as pd
 import geohash as gh
 import geopandas as gpd
@@ -51,6 +50,84 @@ def wms_fields(gdf):
             wms_sig=gdf.sig_time <= 0.01,
         )
     )
+
+
+def generate_hotspots(shorelines_gdf, ratesofchange_gdf, hotspots_radii, baseline_year):
+    hotspots = []
+
+    for i, radius in enumerate(hotspots_radii):
+        # Extract hotspot points
+        hotspots_gdf = points_on_line(
+            shorelines_gdf,
+            index=baseline_year,
+            distance=int(radius / 2),
+        )
+
+        # Create polygon windows by buffering points
+        buffered_gdf = hotspots_gdf[["geometry"]].copy()
+        buffered_gdf["geometry"] = buffered_gdf.buffer(radius)
+
+        # Spatial join rate of change points to each polygon
+        hotspot_grouped = (
+            ratesofchange_gdf.loc[
+                ratesofchange_gdf.certainty == "good",
+                ratesofchange_gdf.columns.str.contains("dist_|geometry"),
+            ]
+            .sjoin(buffered_gdf, predicate="within")
+            .groupby("index_right")
+        )
+
+        # Aggregate/summarise values by taking median of all points
+        # within each buffered polygon
+        hotspot_values = hotspot_grouped.median().round(2)
+
+        # Extract year from distance columns (remove "dist_")
+        x_years = hotspot_values.columns.str.replace("dist_", "").astype(int)
+
+        # Compute coastal change rates by linearly regressing annual
+        # movements vs. time
+        rate_out = hotspot_values.apply(
+            lambda row: change_regress(
+                y_vals=row.values.astype(float), x_vals=x_years, x_labels=x_years
+            ),
+            axis=1,
+        )
+
+        # Add rates of change back into dataframe
+        hotspot_values[
+            ["rate_time", "incpt_time", "sig_time", "se_time", "outl_time"]
+        ] = rate_out
+
+        # Join aggregated values back to hotspot points after
+        # dropping unused columns (regression intercept)
+        hotspots_gdf = hotspots_gdf.join(hotspot_values.drop("incpt_time", axis=1))
+
+        # Add hotspots radius attribute column
+        hotspots_gdf["radius_m"] = radius
+
+        # Initialise certainty column with good values
+        hotspots_gdf["certainty"] = "good"
+
+        # Identify any points with insufficient observations and flag these as
+        # uncertain. We can obtain a sensible threshold by dividing the
+        # hotspots radius by 30 m along-shore rates of change point distance)
+        hotspots_gdf["n"] = hotspot_grouped.size()
+        hotspots_gdf["n"] = hotspots_gdf["n"].fillna(0)
+        hotspots_gdf.loc[
+            hotspots_gdf.n < (radius / 30), "certainty"
+        ] = "insufficient points"
+
+        # Generate a geohash UID for each point and set as index
+        uids = (
+            hotspots_gdf.geometry.to_crs("EPSG:4326")
+            .apply(lambda x: gh.encode(x.y, x.x, precision=11))
+            .rename("uid")
+        )
+        hotspots_gdf = hotspots_gdf.set_index(uids)
+
+        hotspots.append(hotspots_gdf)
+
+    return hotspots
 
 
 @click.command()
@@ -258,79 +335,11 @@ def continental_cli(
         # Calculate hotspots #
         ######################
 
-        for i, radius in enumerate(hotspots_radius):
-            # Extract hotspot points
-            log.info(f"Calculating {radius} m hotspots")
-            hotspots_gdf = points_on_line(
-                shorelines_gdf,
-                index=baseline_year,
-                distance=int(radius / 2),
-            )
+        hotspots = generate_hotspots()
 
-            # Create polygon windows by buffering points
-            buffered_gdf = hotspots_gdf[["geometry"]].copy()
-            buffered_gdf["geometry"] = buffered_gdf.buffer(radius)
-
-            # Spatial join rate of change points to each polygon
-            hotspot_grouped = (
-                ratesofchange_gdf.loc[
-                    ratesofchange_gdf.certainty == "good",
-                    ratesofchange_gdf.columns.str.contains("dist_|geometry"),
-                ]
-                .sjoin(buffered_gdf, predicate="within")
-                .groupby("index_right")
-            )
-
-            # Aggregate/summarise values by taking median of all points
-            # within each buffered polygon
-            hotspot_values = hotspot_grouped.median().round(2)
-
-            # Extract year from distance columns (remove "dist_")
-            x_years = hotspot_values.columns.str.replace("dist_", "").astype(int)
-
-            # Compute coastal change rates by linearly regressing annual
-            # movements vs. time
-            rate_out = hotspot_values.apply(
-                lambda row: change_regress(
-                    y_vals=row.values.astype(float), x_vals=x_years, x_labels=x_years
-                ),
-                axis=1,
-            )
-
-            # Add rates of change back into dataframe
-            hotspot_values[
-                ["rate_time", "incpt_time", "sig_time", "se_time", "outl_time"]
-            ] = rate_out
-
-            # Join aggregated values back to hotspot points after
-            # dropping unused columns (regression intercept)
-            hotspots_gdf = hotspots_gdf.join(hotspot_values.drop("incpt_time", axis=1))
-
-            # Add hotspots radius attribute column
-            hotspots_gdf["radius_m"] = radius
-
-            # Initialise certainty column with good values
-            hotspots_gdf["certainty"] = "good"
-
-            # Identify any points with insufficient observations and flag these as
-            # uncertain. We can obtain a sensible threshold by dividing the
-            # hotspots radius by 30 m along-shore rates of change point distance)
-            hotspots_gdf["n"] = hotspot_grouped.size()
-            hotspots_gdf["n"] = hotspots_gdf["n"].fillna(0)
-            hotspots_gdf.loc[
-                hotspots_gdf.n < (radius / 30), "certainty"
-            ] = "insufficient points"
-
-            # Generate a geohash UID for each point and set as index
-            uids = (
-                hotspots_gdf.geometry.to_crs("EPSG:4326")
-                .apply(lambda x: gh.encode(x.y, x.x, precision=11))
-                .rename("uid")
-            )
-            hotspots_gdf = hotspots_gdf.set_index(uids)
-
-            # Export hotspots to file, incrementing name for each layer
-            try:
+        # Export hotspots to file, incrementing name for each layer
+        try:
+            for i, hotspots_gdf in enumerate(hotspots):
                 # Export to geopackage
                 layer_name = f"hotspots_zoom_{range(0, 10)[i + 1]}"
                 hotspots_gdf.to_file(
@@ -356,9 +365,9 @@ def continental_cli(
                         },
                     )
 
-            except ValueError as e:
-                log.exception(f"Failed to generate hotspots with error: {e}")
-                sys.exit(1)
+        except ValueError as e:
+            log.exception(f"Failed to generate hotspots with error: {e}")
+            sys.exit(1)
 
         log.info("Writing coastal change hotspots complete")
 

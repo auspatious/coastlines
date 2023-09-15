@@ -714,9 +714,9 @@ def contours_preprocess(
 
         landcover = load(sign(items), bbox=bbox, crs=crs, resolution=30)
 
-        # Create a binary mask for water
+        # Create a binary mask for water. A higher number is less masking.
         ocean_mask = mask_cleanup(
-            landcover[band_name] == water_value, [("erosion", 20)]
+            landcover[band_name] == water_value, [("erosion", 30)]
         ).squeeze(dim="time")
 
         masked_ds = masked_ds.where(~ocean_mask)
@@ -769,7 +769,6 @@ def points_on_line(gdf, index, distance=30):
     points_gdf : geopandas.GeoDataFrame
         A `geopandas.GeoDataFrame` containing point features at every
         `distance` along the selected line.
-
     """
 
     # Select individual line to generate points along

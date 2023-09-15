@@ -1,6 +1,7 @@
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Union
 
 import click
 import geopandas as gpd
@@ -10,11 +11,11 @@ from dea_tools.coastal import pixel_tides
 from odc.algo import erase_bad, mask_cleanup, to_f32
 from odc.stac import configure_s3_access, load
 from pystac_client import Client
-import boto3
-from botocore.errorfactory import ClientError
+from s3path import S3Path
 
 from coastlines.raster import tide_cutoffs
 from coastlines.utils import (
+    CoastlinesException,
     click_aws_request_payer,
     click_aws_unsigned,
     click_baseline_year,
@@ -22,14 +23,16 @@ from coastlines.utils import (
     click_config_path,
     click_end_year,
     click_index_threshold,
+    click_output_location,
+    click_output_version,
     click_overwrite,
     click_start_year,
     click_study_area,
     click_tide_centre,
     configure_logging,
     get_study_site_geometry,
+    is_s3,
     load_config,
-    CoastlinesException,
 )
 from coastlines.vector import (
     all_time_stats,
@@ -60,14 +63,6 @@ def http_to_s3_url(http_url):
     return s3_url
 
 
-def path_is_s3(path: Path) -> bool:
-    return str(path).startswith("s3:/")
-
-
-def path_to_s3(path: Path) -> str:
-    return str(path).replace("s3:/", "s3://")
-
-
 def sanitise_tile_id(tile_id: str, zero_pad: bool = True) -> str:
     out_tile_id = tile_id.replace(",", "_")
     if zero_pad:
@@ -81,9 +76,15 @@ def get_output_path(
     tile_id: str,
     dataset_name: str,
     extension: str,
-) -> Path:
+) -> Union[Path, S3Path]:
+    path = None
+    if output_location.startswith("s3://"):
+        path = S3Path(output_location.lstrip("s3:/"))
+    else:
+        path = Path(output_location)
+
     output_path = (
-        Path(output_location)
+        path
         / output_version
         / f"{dataset_name}_{sanitise_tile_id(tile_id)}.{extension}"
     )
@@ -251,9 +252,9 @@ def export_results(
         output_location, output_version, study_area, "points", "parquet"
     )
 
-    if path_is_s3(output_contours):
-        output_contours = path_to_s3(output_contours)
-        output_points = path_to_s3(output_points)
+    if is_s3(output_location):
+        output_points = f"S3:/{output_points}"
+        output_contours = f"S3:/{output_contours}"
     else:
         if output_contours.exists():
             output_contours.unlink()
@@ -381,8 +382,8 @@ def process_coastlines(
     )
 
     # Clip to the study area
-    points_gdf = points_gdf.clip(geometry.geom)
-    contours_gdf = contours_gdf.clip(geometry.geom)
+    points_gdf = points_gdf.clip(geometry.to_crs(points_gdf.crs).geom)
+    contours_gdf = contours_gdf.clip(geometry.to_crs(contours_gdf.crs).geom)
 
     log.info(f"Writing to files at {output_location}")
     export_results(
@@ -394,19 +395,8 @@ def process_coastlines(
 @click.command("coastlines-combined")
 @click_config_path
 @click_study_area
-@click.option(
-    "--output-version",
-    type=str,
-    required=True,
-    help="A unique string proving a name that will be used "
-    "for output directories and files. This can be "
-    "used to version different analysis outputs.",
-)
-@click.option(
-    "--output-location",
-    type=str,
-    default="data/processed",
-)
+@click_output_version
+@click_output_location
 @click_start_year
 @click_end_year
 @click_baseline_year
@@ -444,8 +434,6 @@ def cli(
     config = load_config(config_path=config_path)
 
     log.info("Checking output location")
-    output_location = Path(output_location)
-
     if overwrite is False:
         # We don't want to overwrite, so see if we've done this work already
         output_contours = get_output_path(
@@ -455,35 +443,12 @@ def cli(
             output_location, output_version, study_area, "points", "parquet"
         )
 
-        if path_is_s3(output_location):
-            # Check if the outputs exist on S3 already
-            s3 = boto3.client("s3")
-            try:
-                s3.head_object(
-                    Bucket=output_location.parts[1],
-                    Key="/".join(output_contours.parts[2:]),
-                )
-                s3.head_object(
-                    Bucket=output_location.parts[1],
-                    Key="/".join(output_contours.parts[2:]),
-                )
-                log.info(
-                    f"Found existing output files at {output_location}. Skipping processing."
-                )
-                sys.exit(0)
-            except ClientError as e:
-                if e.response["Error"]["Code"] == "403":
-                    raise CoastlinesException(
-                        "Permisions error when checking for existing output files on S3"
-                    )
-                pass
-        else:
-            # Check if the outputs exis on the file system
-            if output_contours.exists() and output_points.exists():
-                log.info(
-                    f"Found existing output files at {output_location}. Skipping processing."
-                )
-                sys.exit(0)
+        # This function works for both S3 and local paths
+        if output_contours.exists() and output_points.exists():
+            log.info(
+                f"Found existing output files at {output_location}. Skipping processing."
+            )
+            sys.exit(0)
 
     log.info("Checking configuration")
     virtual_product = config.get("Virtual product")

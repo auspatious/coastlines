@@ -1,5 +1,12 @@
 # Notes for running Coastlines in Production
 
+Interesting tiles:
+
+* Islands: `["28,18", "35,23", "33,24", "33,23", "18,23"]`
+* South-west: `["9,18", "9,19", "9,20", "10,18", "10,19"]`
+* North-east `["13,44", "13,45", "13,46", "14,45", "14,46"]`
+* Central: `["18,31", "18,32", "18,33", "18,34", "19,31"]`
+
 ## Argo workflow
 
 Example workflow is included... notes tba.
@@ -46,10 +53,10 @@ docker-compose run coastlines \
     coastlines-combined \
         --config-path=configs/vietnam_coastlines_config.yaml \
         --study-area="9,19" \
-        --tide-data-location="~/tide_models/" \
-        --output-version="0.0.0" \
+        --tide-data-location="/tmp/tide_models/" \
+        --output-version="0.1.0" \
         --output-location="s3://files.auspatious.com/coastlines/data/" \
-        --start-year="2020" \
+        --start-year="1985" \
         --end-year="2022" \
         --baseline-year="2021" \
         --aws-request-payer \

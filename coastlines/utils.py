@@ -1,11 +1,14 @@
 import logging
-import yaml
-import fsspec
 from pathlib import Path
+from typing import Union
+
 import click
-from datacube.utils.geometry import Geometry
+import fsspec
 import geopandas as gpd
+import yaml
+from datacube.utils.geometry import Geometry
 from geopandas import GeoDataFrame
+from s3path import S3Path
 
 STYLES_FILE = Path(__file__).parent / "styles.csv"
 
@@ -13,6 +16,13 @@ STYLES_FILE = Path(__file__).parent / "styles.csv"
 # Create our own exception to raise
 class CoastlinesException(Exception):
     pass
+
+
+def is_s3(path: Union[Path, S3Path]) -> bool:
+    """
+    Check if a path is an S3 path.
+    """
+    return isinstance(path, S3Path)
 
 
 def configure_logging(name: str = "Coastlines") -> logging.Logger:
@@ -156,4 +166,17 @@ click_index_threshold = click.option(
     default=0.00,
     help="The water index threshold used to extract "
     "subpixel precision shorelines. Defaults to 0.00.",
+)
+click_output_location = click.option(
+    "--output-location",
+    type=str,
+    default="data/processed",
+)
+click_output_version = click.option(
+    "--output-version",
+    type=str,
+    required=True,
+    help="A unique string proving a name that will be used "
+    "for output directories and files. This can be "
+    "used to version different analysis outputs.",
 )

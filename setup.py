@@ -40,6 +40,7 @@ REQUIRED = [
     "PyYAML",
     "rasterio",
     "rioxarray",
+    "s3path",
     "scikit_image",
     "scikit_learn",
     "scipy",
@@ -78,8 +79,9 @@ setup_kwargs = {
             "deacoastlines-raster = coastlines.raster:generate_rasters_cli",
             "deacoastlines-vector = coastlines.vector:generate_vectors_cli",
             "deacoastlines-continental = coastlines.continental:continental_cli",
-            "coastlines-combined = coastlines.combined:cli",
             "coastlines-print-tiles = coastlines.print_tiles:cli",
+            "coastlines-combined = coastlines.combined:cli",
+            "coastlines-merge = coastlines.merge_tiles:cli",
         ]
     },
 }

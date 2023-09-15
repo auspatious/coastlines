@@ -14,6 +14,7 @@ from coastlines.utils import STYLES_FILE, configure_logging
 from pathlib import Path
 from typing import Union
 from coastlines.utils import is_s3, CoastlinesException
+import boto3
 
 from odc.stac import configure_s3_access
 
@@ -55,6 +56,7 @@ def munge_data(
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     # Add a certainty column to shorelinres
     shorelines["certainty"] = "good"
+    rates_of_change["certainty"] = "good"
 
     return rates_of_change, shorelines
 
@@ -146,7 +148,8 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
 
         # Shift the tempfile to a final location
         if write_to_s3:
-            output_geopackage.put(temp_geopackage)
+            s3 = boto3.client("s3")
+            s3.upload_file(temp_geopackage, output_geopackage.bucket, output_geopackage.key)
         else:
             output_geopackage.parent.mkdir(parents=True, exist_ok=True)
             Path(temp_geopackage).rename(output_geopackage)

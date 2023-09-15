@@ -716,7 +716,7 @@ def contours_preprocess(
 
         # Create a binary mask for water. A higher number is less masking.
         ocean_mask = mask_cleanup(
-            landcover[band_name] == water_value, [("erosion", 30)]
+            landcover[band_name] == water_value, [("erosion", 50)]
         ).squeeze(dim="time")
 
         masked_ds = masked_ds.where(~ocean_mask)

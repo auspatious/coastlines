@@ -40,7 +40,7 @@ REQUIRED = [
     "PyYAML",
     "rasterio",
     "rioxarray",
-    "s3path",
+    "s3pathlib",
     "scikit_image",
     "scikit_learn",
     "scipy",

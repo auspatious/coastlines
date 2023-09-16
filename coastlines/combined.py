@@ -79,7 +79,7 @@ def get_output_path(
 ) -> Union[Path, S3Path]:
     path = None
     if output_location.startswith("s3://"):
-        path = S3Path(output_location.lstrip("s3:/"))
+        path = S3Path(output_location.replace("s3:/", ""))
     else:
         path = Path(output_location)
 
@@ -242,7 +242,7 @@ def export_results(
     points_gdf: gpd.GeoDataFrame,
     contours_gdf: gpd.GeoDataFrame,
     output_version: str,
-    output_location: Path,
+    output_location: str,
     study_area: str,
 ):
     output_contours = get_output_path(
@@ -252,9 +252,9 @@ def export_results(
         output_location, output_version, study_area, "points", "parquet"
     )
 
-    if is_s3(output_location):
-        output_points = f"S3:/{output_points}"
-        output_contours = f"S3:/{output_contours}"
+    if is_s3(output_contours):
+        output_points = f"s3:/{output_points}"
+        output_contours = f"s3:/{output_contours}"
     else:
         if output_contours.exists():
             output_contours.unlink()

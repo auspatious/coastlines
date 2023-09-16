@@ -8,7 +8,7 @@ import geopandas as gpd
 import yaml
 from datacube.utils.geometry import Geometry
 from geopandas import GeoDataFrame
-from s3path import S3Path
+from s3pathlib import S3Path
 
 STYLES_FILE = Path(__file__).parent / "styles.csv"
 

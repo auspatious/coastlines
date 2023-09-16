@@ -4,7 +4,7 @@ from coastlines.utils import (
     click_baseline_year,
 )
 import click
-from s3path import S3Path
+from s3pathlib import S3Path
 from typing import Iterable
 import geopandas as gpd
 import pandas as pd
@@ -14,19 +14,16 @@ from coastlines.utils import STYLES_FILE, configure_logging
 from pathlib import Path
 from typing import Union
 from coastlines.utils import is_s3, CoastlinesException
-import boto3
 
 from odc.stac import configure_s3_access
 
 
-def list_files_s3(input_location: str, suffix: str):
-    input_location = input_location.lower()
-    if input_location.startswith("s3://"):
-        path = S3Path(input_location.replace("s3:/", ""))
+def list_files(path: Union[Path, S3Path], suffix: str):
+    if is_s3(path):
+        for s3path in path.iter_objects().filter(S3Path.ext == suffix):
+            yield s3path
     else:
-        path = Path(input_location)
-
-    return path.glob(f"**/*{suffix}")
+        return path.glob(f"**/*{suffix}")
 
 
 def find_points_contours(files: Iterable) -> list[list[S3Path], list[S3Path]]:
@@ -44,8 +41,9 @@ def find_points_contours(files: Iterable) -> list[list[S3Path], list[S3Path]]:
 def load_parquet_files(files: list[S3Path], output_crs: str):
     data_frames = []
     for file in files:
-        file_s3 = f"s3:/{file}"
-        df = gpd.read_parquet(file_s3).to_crs(output_crs)
+        print(file)
+        print(str(file))
+        df = gpd.read_parquet(str(file)).to_crs(output_crs)
         data_frames.append(df)
 
     return gpd.GeoDataFrame(pd.concat(data_frames), geometry="geometry")
@@ -62,40 +60,32 @@ def munge_data(
 
 
 def get_output_path(
-    output_location: str,
+    path: Union[Path, S3Path],
     output_version: str,
     dataset_name: str,
     extension: str,
 ) -> Union[Path, S3Path]:
-    path = None
-    if output_location.startswith("s3://"):
-        path = S3Path(output_location.replace("s3:/", ""))
-    else:
-        path = Path(output_location)
-
     output_path = path / f"{dataset_name}_{output_version}.{extension}"
 
     return output_path
 
 
-def write_files(rates_of_change, shorelines, hotspots, output_location, output_version):
+def write_files(rates_of_change, shorelines, hotspots, output_path, output_version):
     # Destination files
     output_shorelines = get_output_path(
-        output_location, output_version, "shorelines_annual", "parquet"
+        output_path, output_version, "shorelines_annual", "parquet"
     )
     output_rates_of_change = get_output_path(
-        output_location, output_version, "rates_of_change", "parquet"
+        output_path, output_version, "rates_of_change", "parquet"
     )
     output_geopackage = get_output_path(
-        output_location, output_version, "coastlines", "gpkg"
+        output_path, output_version, "coastlines", "gpkg"
     )
 
-    write_to_s3 = is_s3(output_shorelines)
+    if not is_s3(output_path):
+        # And check the parent directory exists
+        output_path.mkdir(parents=True, exist_ok=True)
 
-    if write_to_s3:
-        output_shorelines = f"s3:/{output_shorelines}"
-        output_rates_of_change = f"s3:/{output_rates_of_change}"
-    else:
         # Need to clean up existing files maybe
         if output_shorelines.exists():
             output_shorelines.unlink()
@@ -103,33 +93,31 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
             output_rates_of_change.unlink()
         if output_geopackage.exists():
             output_geopackage.unlink()
-        # And check the parent directory exists
-        output_shorelines.parent.mkdir(parents=True, exist_ok=True)
 
     # Write parquet
     shorelines.to_parquet(output_shorelines)
     rates_of_change.to_parquet(output_rates_of_change)
 
-    # hotspots needs more work
+    # TODO: Hotspots needs more work. This is being skipped.
     if hotspots is not None:
         for i, hotspot in enumerate(hotspots):
             output_hotspot = get_output_path(
-                output_location,
+                output_path,
                 output_version,
                 f"hotspots_{output_version}_zoom_{i}",
                 "parquet",
             )
-            if write_to_s3:
-                output_hotspot = f"s3:/{output_hotspot}"
-            else:
+
+            if not is_s3(output_path):
                 if output_hotspot.exists():
                     output_hotspot.unlink()
+
             hotspot.to_parquet(output_hotspot)
 
     # Write geopackage
     with tempfile.TemporaryDirectory() as tmpdir:
         # Write to a temporary file first
-        temp_geopackage = f"{tmpdir}/coastlines_{output_version}.gpkg"
+        temp_geopackage = Path(f"{tmpdir}/coastlines_{output_version}.gpkg")
 
         # Main data writing
         shorelines.to_file(temp_geopackage, layer="shorelines_annual", driver="GPKG")
@@ -146,14 +134,10 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
         styles = gpd.read_file(STYLES_FILE)
         styles.to_file(temp_geopackage, layer="layer_styles", driver="GPKG")
 
-        # Shift the tempfile to a final location
-        if write_to_s3:
-            s3 = boto3.client("s3")
-            s3.upload_file(
-                temp_geopackage, output_geopackage.bucket, output_geopackage.key
-            )
+        # Upload/move the temporary file to a final location
+        if is_s3(output_path):
+            output_geopackage.upload_file(temp_geopackage)
         else:
-            output_geopackage.parent.mkdir(parents=True, exist_ok=True)
             Path(temp_geopackage).rename(output_geopackage)
 
 
@@ -164,15 +148,29 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
 @click_baseline_year
 @click.option("--output-crs", default="EPSG:3405", help="Output CRS")
 def cli(input_location, output_location, output_version, baseline_year, output_crs):
+    # Set up either S3Path or Path
+    if "s3://" in input_location.lower():
+        input_path = S3Path(input_location)
+    else:
+        input_path = Path(input_location)
+
+    if "s3://" in output_location.lower():
+        output_path = S3Path(output_location)
+    else:
+        output_path = Path(output_location)
+
     log = configure_logging()
-    log.info(f"Merging files from {input_location} to {output_location}")
     configure_s3_access()
-    files = list_files_s3(input_location, suffix=".parquet")
+
+    log.info(f"Merging files from {input_path} to {output_location}")
+    files = list_files(input_path, suffix=".parquet")
 
     points_files, contours_files = find_points_contours(files)
+
     n_contours = len(contours_files)
     n_points = len(points_files)
     log.info(f"Found {n_points} points files and {n_contours} contours files")
+
     if n_contours != n_points:
         raise CoastlinesException("Number of points and contours files must be equal")
     if n_contours == 0:
@@ -189,7 +187,7 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
     # hotspots = generate_hotspots(shorelines, rates_of_change, [10000, 5000, 1000], baseline_year)
 
     log.info("Writing files")
-    write_files(rates_of_change, shorelines, hotspots, output_location, output_version)
+    write_files(rates_of_change, shorelines, hotspots, output_path, output_version)
 
 
 if __name__ == "__main__":

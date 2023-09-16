@@ -63,3 +63,25 @@ docker-compose run coastlines \
         --no-aws-unsigned \
         --no-overwrite
 ```
+
+And to run a bunch of tiles...
+
+```bash
+for i in 28,18 35,23 33,24 33,23 18,23 9,18 9,19 9,20 10,18 10,19 13,44 13,45 13,46 14,45 14,46 18,31 18,32 18,33 18,34 19,31;
+    docker-compose run coastlines \
+        coastlines-combined \
+            --config-path=configs/vietnam_coastlines_config.yaml \
+            --study-area=$i \
+            --tide-data-location="/tmp/tide_models/" \
+            --output-version="0.1.2" \
+            --output-location="s3://files.auspatious.com/coastlines/data/" \
+            --start-year="1985" \
+            --end-year="2022" \
+            --baseline-year="2021" \
+            --aws-request-payer \
+            --no-aws-unsigned \
+            --overwrite
+; end
+```
+
+28,18 35,23 33,24 33,23 18,23 9,18 9,19 9,20 10,18 10,19 13,44 13,45 13,46 14,45 14,46 18,31 18,32 18,33 18,34 19,31 

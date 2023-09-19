@@ -187,7 +187,6 @@ def ocean_masking(ds, ocean_da, connectivity=1, dilation=None):
         An array containing the a mask consisting of identified ocean
         pixels as True.
     """
-
     # Update `ocean_da` to mask out any pixels that are land in `ds` too
     ocean_da = ocean_da & (ds != 1)
 
@@ -483,8 +482,6 @@ def contour_certainty(contours_gdf, certainty_masks):
 
 def contours_preprocess(
     combined_ds=None,
-    yearly_ds=None,
-    gapfill_ds=None,
     water_index="mndwi",
     index_threshold=0.0,
     buffer_pixels=50,
@@ -561,14 +558,10 @@ def contours_preprocess(
         problematic region. This is used to assign each output shoreline
         with a certainty column.
     """
-    if yearly_ds is None and gapfill_ds is None:
-        assert (
-            combined_ds is not None
-        ), "You need to either provide yearly and gapfill or combined datasets"
-
     # Remove low obs pixels and replace with 3-year gapfill
-    if yearly_ds is not None:
-        combined_ds = yearly_ds.where(yearly_ds["count"] > 5, gapfill_ds)
+    combined_ds["mndwi"] = combined_ds["mndwi"].where(combined_ds["count"] > 5, combined_ds["gapfill_mndwi"])
+    combined_ds["count"] = combined_ds["count"].where(combined_ds["count"] > 5, combined_ds["gapfill_count"])
+    combined_ds["stdev"] = combined_ds["stdev"].where(combined_ds["count"] > 5, combined_ds["gapfill_stdev"])
 
     # Set any pixels with only one observation to NaN, as these are
     # extremely vulnerable to noise
@@ -622,17 +615,47 @@ def contours_preprocess(
     # use high certainty deeper water ocean regions for identifying ocean
     # pixels in our satellite imagery. If no Geodata data exists (e.g.
     # over remote ocean waters, use an all True array to represent ocean.
-    try:
-        dc = datacube.Datacube()
-        geodata_da = dc.load(
-            product="geodata_coast_100k",
-            like=combined_ds.odc.geobox.compat,
-        ).land.squeeze("time")
-        ocean_da = xr.apply_ufunc(binary_erosion, geodata_da == 0, disk(10))
-    except (AttributeError, OperationalError):
-        ocean_da = odc.geo.xr.xr_zeros(combined_ds.odc.geobox) == 0
-    except ValueError:  # Temporary workaround for no geodata access for tests
-        ocean_da = xr.apply_ufunc(binary_erosion, all_time_20 == 0, disk(20))
+    # try:
+    #     dc = datacube.Datacube()
+    #     geodata_da = dc.load(
+    #         product="geodata_coast_100k",
+    #         like=combined_ds.odc.geobox.compat,
+    #     ).land.squeeze("time")
+    #     ocean_da = xr.apply_ufunc(binary_erosion, geodata_da == 0, disk(10))
+    # except (AttributeError, OperationalError):
+    #     ocean_da = odc.geo.xr.xr_zeros(combined_ds.odc.geobox) == 0
+
+    # TODO: Fix backwards compatiblity with DEA ^
+    ocean_da = None
+    if mask_with_esa_wc:
+        from odc.algo import mask_cleanup
+        from odc.stac import load
+        from planetary_computer import sign
+        from pystac_client import Client
+
+        pc_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
+        pc_client = Client.open(pc_url)
+
+        bb = combined_ds.odc.geobox.boundingbox.to_crs(4326)
+        bbox = [bb.left, bb.bottom, bb.right, bb.top]
+
+        lc_year = "2021"
+        band_name = "map"
+        water_value = 80
+        collection = "esa-worldcover"
+
+        items = sign(
+            pc_client.search(
+                collections=[collection], bbox=bbox, datetime=lc_year
+            ).get_all_items()
+        )
+
+        landcover = load(sign(items), geobox=combined_ds.odc.geobox)
+
+        # Create a binary mask for water. A higher number is less masking.
+        ocean_da = mask_cleanup(
+            landcover[band_name] == water_value, [("erosion", 50)]
+        ).squeeze(dim="time")
 
     # Use all time and Geodata 100K data to produce the buffered coastal
     # study area. The output has values of 0 representing non-coastal
@@ -688,40 +711,10 @@ def contours_preprocess(
         temporal_mask & annual_mask & (coastal_mask == 1)
     )
 
-    ocean_mask = None
     if mask_with_esa_wc:
-        from odc.algo import mask_cleanup
-        from odc.stac import load
-        from planetary_computer import sign
-        from pystac_client import Client
-
-        pc_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
-        pc_client = Client.open(pc_url)
-
-        bb = combined_ds.odc.geobox.boundingbox.to_crs(4326)
-        bbox = [bb.left, bb.bottom, bb.right, bb.top]
-        crs = combined_ds.odc.geobox.crs.epsg
-        lc_year = "2021"
-        band_name = "map"
-        water_value = 80
-        collection = "esa-worldcover"
-
-        items = sign(
-            pc_client.search(
-                collections=[collection], bbox=bbox, datetime=lc_year
-            ).get_all_items()
-        )
-
-        landcover = load(sign(items), bbox=bbox, crs=crs, resolution=30)
-
-        # Create a binary mask for water. A higher number is less masking.
-        ocean_mask = mask_cleanup(
-            landcover[band_name] == water_value, [("erosion", 50)]
-        ).squeeze(dim="time")
-
-        masked_ds = masked_ds.where(~ocean_mask)
+        masked_ds = masked_ds.where(~ocean_da)
         # Don't know why the CRS is being lost here...
-        masked_ds = masked_ds.odc.assign_crs(crs)
+        masked_ds = masked_ds.odc.assign_crs(combined_ds.odc.crs)
 
     # Generate annual vector polygon masks containing information
     # about the certainty of each shoreline feature
@@ -740,7 +733,7 @@ def contours_preprocess(
             temporal_mask,
             annual_mask,
             coastal_mask,
-            ocean_mask,
+            ocean_da,
         )
 
     else:

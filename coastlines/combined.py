@@ -139,7 +139,8 @@ def load_and_mask_data_with_stac(
     nodata_mask = ds.green == 0
 
     # Get cloud and cloud shadow mask
-    mask_bitfields = [1, 2, 3, 4]  # dilated cloud, cirrus, cloud, cloud shadow
+    # mask_bitfields = [1, 2, 3, 4]  # dilated cloud, cirrus, cloud, cloud shadow
+    mask_bitfields = [3, 4]  # dilated cloud, cirrus, cloud, cloud shadow
     bitmask = 0
     for field in mask_bitfields:
         bitmask |= 1 << field
@@ -147,7 +148,8 @@ def load_and_mask_data_with_stac(
     # Get cloud mask
     cloud_mask = ds["qa_pixel"].astype(int) & bitmask != 0
     # Expand and contract the mask to clean it up
-    dilated_mask = mask_cleanup(cloud_mask, [("opening", 2), ("dilation", 3)])
+    # TODO: Check the opening and dilation of MASK
+    dilated_mask = mask_cleanup(cloud_mask, [("opening", 10), ("dilation", 5)])
 
     final_mask = nodata_mask | dilated_mask
 
@@ -221,7 +223,9 @@ def generate_yearly_composites(
             year_summary["stdev"] = one_year.mndwi.std(dim="time")
 
             # And a gapfill summary for the three years
-            year_summary["gapfill"] = three_years.mndwi.median(dim="time")
+            year_summary["gapfill_mndwi"] = three_years.mndwi.median(dim="time")
+            year_summary["gapfill_count"] = three_years.mndwi.count(dim="time")
+            year_summary["gapfill_stdev"] = three_years.mndwi.std(dim="time")
 
             years.append(year)
             yearly_ds_list.append(year_summary)

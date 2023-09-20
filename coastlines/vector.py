@@ -559,9 +559,15 @@ def contours_preprocess(
         with a certainty column.
     """
     # Remove low obs pixels and replace with 3-year gapfill
-    combined_ds["mndwi"] = combined_ds["mndwi"].where(combined_ds["count"] > 5, combined_ds["gapfill_mndwi"])
-    combined_ds["count"] = combined_ds["count"].where(combined_ds["count"] > 5, combined_ds["gapfill_count"])
-    combined_ds["stdev"] = combined_ds["stdev"].where(combined_ds["count"] > 5, combined_ds["gapfill_stdev"])
+    combined_ds["mndwi"] = combined_ds["mndwi"].where(
+        combined_ds["count"] > 5, combined_ds["gapfill_mndwi"]
+    )
+    combined_ds["count"] = combined_ds["count"].where(
+        combined_ds["count"] > 5, combined_ds["gapfill_count"]
+    )
+    combined_ds["stdev"] = combined_ds["stdev"].where(
+        combined_ds["count"] > 5, combined_ds["gapfill_stdev"]
+    )
 
     # Set any pixels with only one observation to NaN, as these are
     # extremely vulnerable to noise

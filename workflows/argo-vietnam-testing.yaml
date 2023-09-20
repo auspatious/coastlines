@@ -1,43 +1,34 @@
-
 ---
-kind: WorkflowTemplate
+kind: Workflow
 metadata:
   generateName: vietnam-coastlines-
   namespace: cenv-coastlines-argo
 spec:
+  serviceAccountName: cenv-coastlines-team-sa-argo
   entrypoint: coastlines-dag
   podGC:
     strategy: OnPodSuccess
     deleteDelayDuration: 120s
-  # nodeSelector:
-  #   example.com/node-purpose: argo-specific-nodegroup
-  # tolerations:
-  #   - key: "dedicated"
-  #     operator: "Equal"
-  #     value: "coastlines-processing"
-  #     effect: "NoSchedule"
-  # affinity:
-  #   nodeAffinity:
-  #     requiredDuringSchedulingIgnoredDuringExecution:
-  #       nodeSelectorTerms:
-  #         - matchExpressions:
-  #           - key: nodegroup
-  #             operator: In
-  #             values:
-  #               - coastlines-r5-8xl
+  nodeSelector:
+    example.com/node-purpose: argo-specific-nodegroup
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "coastlines-processing"
+      effect: "NoSchedule"
   workflowMetadata:
     labels:
       app: vietnam-coastlines
   arguments:
     parameters:
       - name: image-tag
-        value: "0.1.4"
+        value: "0.2.0"
       - name: result-version
-        value: "v0.0.0"
-      - name: tiles-uri
-        value: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/vietnam_tiles.geojson.com"
+        value: "0.2.0"
+      - name: tiles-file
+        value: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/vietnam_tiles.geojson"
       - name: tiles-subset
-        value: "value should be an empty list '[]' or a list, like '[\"31,15\", \"29,16\"]'"
+        value: "[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,20\"]"  # Can be [] for all tiles
       - name: config
         value: configs/vietnam_coastlines_config.yaml
       - name: start-year
@@ -47,7 +38,7 @@ spec:
       - name: baseline-year
         value: 2021
       - name: result-location
-        value: s3://files.auspatious.com/coastlines/output/
+        value: s3://easi-asia-dc-data-projects/coastlines/
       - name: overwrite
         value: "--no-overwrite"
       - name: safe-to-retry
@@ -60,8 +51,8 @@ spec:
           template: generate
           arguments:
             parameters:
-              - name: tiles-uri
-                value: "{{workflow.parameters.tiles-uri}}"
+              - name: tiles-file
+                value: "{{workflow.parameters.tiles-file}}"
               - name: tiles-subset
                 value: "{{workflow.parameters.tiles-subset}}"
 
@@ -90,37 +81,37 @@ spec:
             - name: safe-to-retry
               value: "{{workflow.parameters.safe-to-retry}}"
 
-        # - name: merge
-        #   onExit: cleanup
-        #   depends: "process-id.AnySucceeded"
-        #   template: merge-continental
-        #   arguments:
-        #     parameters:
-        #     - name: result-version
-        #       value: "{{workflow.parameters.result-version}}"
-        #     - name: result-location
-        #       value: "{{workflow.parameters.result-location}}"
-
+        - name: merge
+          onExit: cleanup
+          depends: "process-id.AnySucceeded"
+          template: merge-continental
+          arguments:
+            parameters:
+            - name: result-version
+              value: "{{workflow.parameters.result-version}}"
+            - name: result-location
+              value: "{{workflow.parameters.result-location}}"
+            - name: baseline-year
+              value: "{{workflow.parameters.baseline-year}}"
 
     - name: generate
       inputs:
         parameters:
-          - name: tiles-uri
+          - name: tiles-file
           - name: tiles-subset
       container:
         image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
         command: [ bash, -c ]
         args:
           - >-
-            print-tiles
-            --tiles-uri {{inputs.parameters.tiles-uri}}
+            coastlines-print-tiles
+            --tiles-file {{inputs.parameters.tiles-file}}
             --tiles-subset {{inputs.parameters.tiles-subset}}
 
     - name: process
       metadata:
         labels:
           app: "argo-coastlines-process-{{workflow.name}}"
-      # serviceAccountName: external-data-processing
       inputs:
         parameters:
           - name: id
@@ -132,20 +123,16 @@ spec:
           - name: baseline-year
           - name: safe-to-retry
           - name: overwrite
-      # retryStrategy:
-      #   limit: "1"
-      #   # Only continue retrying if the last is exit code is greater than 1 and the input parameter "safe-to-retry" is true
-      #   expression: "asInt(lastRetry.exitCode) > 1 && {{inputs.parameters.safe-to-retry}} == true"
       container:
-        image: digitalearthafrica/deafrica-coastlines:{{workflow.parameters.image-tag}}
+        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
         imagePullPolicy: IfNotPresent
         resources:
           requests:
             memory: 120Gi
             cpu: 8.0
           limits:
-            cpu: 10.0
-            memory: 140Gi
+            cpu: 8.0
+            memory: 120Gi
         command: [bash, -c]
         args:
           - |
@@ -170,43 +157,33 @@ spec:
               --aws-request-payer \
               --no-aws-unsigned \
               {{inputs.parameters.overwrite}}
-        # env:
-        #   - name: DB_USERNAME
-        #     valueFrom:
-        #       secretKeyRef:
-        #         key: postgres-username
-        #         name: odc-writer
-        #   - name: DB_PASSWORD
-        #     valueFrom:
-        #       secretKeyRef:
-        #         key: postgres-password
-        #         name: odc-writer
-        #   - name: DB_DATABASE
-        #     value: odc
-        #   - name: DB_HOSTNAME
-        #     value: db-writer
+
 
     - name: merge-continental
       metadata:
         labels:
           app: "argo-coastlines-merge-{{workflow.name}}"
-      serviceAccountName: external-data-processing
       inputs:
         parameters:
           - name: result-version
           - name: result-location
+          - name: baseline-year
       container:
-        image: digitalearthafrica/deafrica-coastlines:{{workflow.parameters.image-tag}}
+        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            memory: 20Gi
-            cpu: 1.0
+            memory: 50Gi
+            cpu: 4.0
           limits:
             cpu: 4.0
             memory: 50Gi
         command: [bash, -c]
         args:
           - |
-            echo "Not implemented. Will need to parse a bunch of .parquet files from the cloud and merge them"
-            echo "Or... we work out partitioned writes, then we don't need to do anything here!"
+            coastlines-combined \
+              --input-location={{inputs.parameters.result-location}}/{{inputs.parameters.result-version}} \
+              --output-location={{inputs.parameters.result-location}} \
+              --output-version={{inputs.parameters.result-version}} \
+              --baseline-year={{inputs.parameters.baseline-year}} \
+              --output-crs="EPSG:3405"

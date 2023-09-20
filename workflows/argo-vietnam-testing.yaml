@@ -6,29 +6,30 @@ metadata:
 spec:
   serviceAccountName: cenv-coastlines-team-sa-argo
   entrypoint: coastlines-dag
+  parallelism: 1
   podGC:
     strategy: OnPodSuccess
     deleteDelayDuration: 120s
   nodeSelector:
-    example.com/node-purpose: argo-specific-nodegroup
+    nodegroup: data_pipelines
   tolerations:
-    - key: "dedicated"
-      operator: "Equal"
-      value: "coastlines-processing"
-      effect: "NoSchedule"
+    - key: easi.csiro.au/dedicated
+      operator: Equal
+      effect: NoSchedule
+      value: data_pipelines
   workflowMetadata:
     labels:
       app: vietnam-coastlines
   arguments:
     parameters:
       - name: image-tag
-        value: "0.2.0"
+        value: "0.2.1"
       - name: result-version
         value: "0.2.0"
       - name: tiles-file
         value: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/vietnam_tiles.geojson"
       - name: tiles-subset
-        value: "[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,20\"]"  # Can be [] for all tiles
+        value: '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,20\"]'  # Can be [] for all tiles
       - name: config
         value: configs/vietnam_coastlines_config.yaml
       - name: start-year
@@ -106,7 +107,7 @@ spec:
           - >-
             coastlines-print-tiles
             --tiles-file {{inputs.parameters.tiles-file}}
-            --tiles-subset {{inputs.parameters.tiles-subset}}
+            --tiles-subset "{{inputs.parameters.tiles-subset}}"
 
     - name: process
       metadata:
@@ -137,6 +138,8 @@ spec:
         args:
           - |
             set -xe
+
+            sleep 10000
         
             echo "Downloading tide model"
             wget https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/vietnam_tide_models.zip \

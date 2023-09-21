@@ -91,6 +91,7 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
     )
 
     write_to_s3 = is_s3(output_shorelines)
+    written = []
 
     if write_to_s3:
         output_shorelines = f"s3:/{output_shorelines}"
@@ -110,6 +111,9 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
     shorelines.to_parquet(output_shorelines)
     rates_of_change.to_parquet(output_rates_of_change)
 
+    written.append(output_shorelines)
+    written.append(output_rates_of_change)
+
     # hotspots needs more work
     if hotspots is not None:
         for i, hotspot in enumerate(hotspots):
@@ -125,6 +129,8 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
                 if output_hotspot.exists():
                     output_hotspot.unlink()
             hotspot.to_parquet(output_hotspot)
+
+            written.append(output_hotspot)
 
     # Write geopackage
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -155,6 +161,10 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
         else:
             output_geopackage.parent.mkdir(parents=True, exist_ok=True)
             Path(temp_geopackage).rename(output_geopackage)
+
+        written.append(output_geopackage)
+
+    return written
 
 
 @click.command("merge-tiles")
@@ -189,7 +199,12 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
     # hotspots = generate_hotspots(shorelines, rates_of_change, [10000, 5000, 1000], baseline_year)
 
     log.info("Writing files")
-    write_files(rates_of_change, shorelines, hotspots, output_location, output_version)
+    written = write_files(
+        rates_of_change, shorelines, hotspots, output_location, output_version
+    )
+
+    for file in written:
+        log.info(f"Wrote: {file}")
 
 
 if __name__ == "__main__":

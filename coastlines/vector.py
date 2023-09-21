@@ -17,12 +17,12 @@ import sys
 import warnings
 
 import click
-import datacube
+import datacube  # noqa
 import geohash as gh
 import geopandas as gpd
 import numpy as np
-import odc.algo
-import odc.geo.xr
+import odc.algo  # noqa
+import odc.geo.xr  # noqa
 import pandas as pd
 import pyproj
 import rioxarray  # noqa: F401
@@ -40,7 +40,7 @@ from skimage.morphology import (
     dilation,
     disk,
 )
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError  # noqa
 
 from coastlines.utils import (
     click_baseline_year,
@@ -562,12 +562,16 @@ def contours_preprocess(
     combined_ds["mndwi"] = combined_ds["mndwi"].where(
         combined_ds["count"] > 5, combined_ds["gapfill_mndwi"]
     )
-    combined_ds["count"] = combined_ds["count"].where(
-        combined_ds["count"] > 5, combined_ds["gapfill_count"]
-    )
     combined_ds["stdev"] = combined_ds["stdev"].where(
         combined_ds["count"] > 5, combined_ds["gapfill_stdev"]
     )
+    combined_ds["count"] = combined_ds["count"].where(
+        combined_ds["count"] > 5, combined_ds["gapfill_count"]
+    )
+
+    del combined_ds["gapfill_mndwi"]
+    del combined_ds["gapfill_count"]
+    del combined_ds["gapfill_stdev"]
 
     # Set any pixels with only one observation to NaN, as these are
     # extremely vulnerable to noise

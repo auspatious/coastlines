@@ -9,7 +9,7 @@ import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
 from odc.algo import erase_bad, mask_cleanup, to_f32
-from odc.stac import configure_s3_access, load
+from odc.stac import load, configure_s3_access
 from pystac_client import Client
 from s3path import S3Path
 
@@ -79,7 +79,7 @@ def get_output_path(
 ) -> Union[Path, S3Path]:
     path = None
     if output_location.startswith("s3://"):
-        path = S3Path(output_location.lstrip("s3:/"))
+        path = S3Path(output_location.replace("s3:/", ""))
     else:
         path = Path(output_location)
 
@@ -92,13 +92,10 @@ def get_output_path(
     return output_path
 
 
-def load_and_mask_data_with_stac(
-    config: dict, query: dict, log: callable
-) -> xr.Dataset:
+def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
     stac_api_url = config["STAC config"]["stac_api_url"]
     collections = config["STAC config"]["stac_collections"]
 
-    log.info(f"Finding data from {stac_api_url} for collections {collections}")
     client = Client.open(stac_api_url)
 
     # Filtering for Tier1 data only
@@ -118,9 +115,6 @@ def load_and_mask_data_with_stac(
         raise CoastlinesException(
             f"Found {n_items} items. This is not enough to do a reliable process."
         )
-    log.info(
-        f"Found {len(items)} items. Using epsg:{most_common_epsg} to lazy load data."
-    )
 
     ds = load(
         items,
@@ -168,7 +162,12 @@ def load_and_mask_data_with_stac(
     # Create MNDWI
     ds["mndwi"] = (ds["green"] - ds["swir16"]) / (ds["green"] + ds["swir16"])
 
-    return ds
+    # Delete unneeded data
+    del ds["green"]
+    del ds["swir16"]
+    del ds["qa_pixel"]
+
+    return ds, items
 
 
 def filter_by_tides(
@@ -246,7 +245,7 @@ def export_results(
     points_gdf: gpd.GeoDataFrame,
     contours_gdf: gpd.GeoDataFrame,
     output_version: str,
-    output_location: Path,
+    output_location: str,
     study_area: str,
 ):
     output_contours = get_output_path(
@@ -256,9 +255,9 @@ def export_results(
         output_location, output_version, study_area, "points", "parquet"
     )
 
-    if is_s3(output_location):
-        output_points = f"S3:/{output_points}"
-        output_contours = f"S3:/{output_contours}"
+    if is_s3(output_contours):
+        output_points = f"s3:/{output_points}"
+        output_contours = f"s3:/{output_contours}"
     else:
         if output_contours.exists():
             output_contours.unlink()
@@ -268,6 +267,8 @@ def export_results(
 
     points_gdf.to_parquet(output_points)
     contours_gdf.to_parquet(output_contours)
+
+    return (output_points, output_contours)
 
 
 def process_coastlines(
@@ -301,7 +302,8 @@ def process_coastlines(
     # Load data all lazy like using dask
     ds = None
     if config.get("STAC config") is not None:
-        ds = load_and_mask_data_with_stac(config, query, log)
+        ds, items = load_and_mask_data_with_stac(config, query)
+        log.info(f"Found {len(items)} items to load.")
     else:
         raise NotImplementedError("Only STAC loading is supported")
 
@@ -319,13 +321,12 @@ def process_coastlines(
 
     # Loading combined yearly composites
     log.info("Generating yearly composites")
-    yearly_ds = generate_yearly_composites(ds, start_year, end_year)
-    combined_ds = yearly_ds.where(yearly_ds["count"] > 5, yearly_ds["gapfill"])
+    combined_ds = generate_yearly_composites(ds, start_year, end_year)
+    # combined_ds = yearly_ds.where(yearly_ds["count"] > 5, yearly_ds["gapfill"])
 
     if not load_early:
         log.info("Loading annual dataset into memory")
         combined_ds = combined_ds.compute()
-    del combined_ds["gapfill"]
 
     # TODO: Maybe write the combined_ds to a Zarr file somewhere
 
@@ -389,10 +390,14 @@ def process_coastlines(
     points_gdf = points_gdf.clip(geometry.to_crs(points_gdf.crs).geom)
     contours_gdf = contours_gdf.clip(geometry.to_crs(contours_gdf.crs).geom)
 
-    log.info(f"Writing to files at {output_location}")
-    export_results(
+    log.info(f"Writing to files to {output_location}")
+    outputs = export_results(
         points_gdf, contours_gdf, output_version, output_location, study_area
     )
+
+    for output in outputs:
+        log.info(f"Wrote: {output}")
+
     log.info(f"Finished work on study area {study_area}")
 
 
@@ -408,6 +413,7 @@ def process_coastlines(
 @click.option("--tide-data-location", type=str, required=True)
 @click_index_threshold
 @click_buffer
+# TODO: remove aws_unsigned and request_payer... or work out how to pass them in
 @click_aws_unsigned
 @click_aws_request_payer
 @click_overwrite
@@ -466,15 +472,15 @@ def cli(
     if aws_unsigned and aws_request_payer:
         raise ValueError("Cannot set both aws_unsigned and aws_request_payer to True")
 
+    log.info("Starting Dask")
+    # Set up Dask
+    _ = start_local_dask(n_workers=8, threads_per_worker=4, mem_safety_margin="2G")
+
     log.info("Configuring S3 access")
     # Do an opinionated configuration of S3 for data reading
     configure_s3_access(
         cloud_defaults=True, aws_unsigned=aws_unsigned, requester_pays=aws_request_payer
     )
-
-    log.info("Starting Dask")
-    # Set up Dask
-    _ = start_local_dask(n_workers=8, threads_per_worker=4, mem_safety_margin="2G")
 
     try:
         log.info("Starting processing...")

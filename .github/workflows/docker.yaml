@@ -50,7 +50,7 @@ jobs:
 
   push:
     permissions: write-all
-    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    if: github.ref == 'refs/heads/stable' || github.event_name == 'release'
     needs: test
     runs-on: ubuntu-latest
     steps:

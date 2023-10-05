@@ -558,28 +558,29 @@ def contours_preprocess(
         problematic region. This is used to assign each output shoreline
         with a certainty column.
     """
+    masked_ds = combined_ds.copy(combined_ds)
     # Remove low obs pixels and replace with 3-year gapfill
-    combined_ds["mndwi"] = combined_ds["mndwi"].where(
+    masked_ds["mndwi"] = combined_ds["mndwi"].where(
         combined_ds["count"] > 5, combined_ds["gapfill_mndwi"]
     )
-    combined_ds["stdev"] = combined_ds["stdev"].where(
+    masked_ds["stdev"] = combined_ds["stdev"].where(
         combined_ds["count"] > 5, combined_ds["gapfill_stdev"]
     )
-    combined_ds["count"] = combined_ds["count"].where(
+    masked_ds["count"] = combined_ds["count"].where(
         combined_ds["count"] > 5, combined_ds["gapfill_count"]
     )
 
-    del combined_ds["gapfill_mndwi"]
-    del combined_ds["gapfill_count"]
-    del combined_ds["gapfill_stdev"]
+    del masked_ds["gapfill_mndwi"]
+    del masked_ds["gapfill_count"]
+    del masked_ds["gapfill_stdev"]
 
     # Set any pixels with only one observation to NaN, as these are
     # extremely vulnerable to noise
-    combined_ds = combined_ds.where(combined_ds["count"] > 1)
+    masked_ds = masked_ds.where(masked_ds["count"] > 1)
 
     # Apply water index threshold and re-apply nodata values
-    nodata = combined_ds[water_index].isnull()
-    thresholded_ds = combined_ds[water_index] < index_threshold
+    nodata = masked_ds[water_index].isnull()
+    thresholded_ds = masked_ds[water_index] < index_threshold
     thresholded_ds = thresholded_ds.where(~nodata)
 
     # Compute temporal mask that restricts the analysis to land pixels
@@ -636,11 +637,12 @@ def contours_preprocess(
     #     ocean_da = odc.geo.xr.xr_zeros(combined_ds.odc.geobox) == 0
 
     # TODO: Fix backwards compatiblity with DEA ^
-    ocean_da = None
+    ocean_da = odc.geo.xr.xr_zeros(combined_ds.odc.geobox) == 0
+
     if mask_with_esa_wc:
         from odc.algo import mask_cleanup
         from odc.stac import load
-        from planetary_computer import sign
+        from planetary_computer import sign, sign_url
         from pystac_client import Client
 
         pc_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
@@ -654,13 +656,11 @@ def contours_preprocess(
         water_value = 80
         collection = "esa-worldcover"
 
-        items = sign(
-            pc_client.search(
-                collections=[collection], bbox=bbox, datetime=lc_year
-            ).get_all_items()
-        )
+        items = pc_client.search(
+            collections=[collection], bbox=bbox, datetime=lc_year
+        ).get_all_items()
 
-        landcover = load(sign(items), geobox=combined_ds.odc.geobox)
+        landcover = load(items, geobox=combined_ds.odc.geobox, patch_url=sign_url)
 
         # Create a binary mask for water. A higher number is less masking.
         ocean_da = mask_cleanup(

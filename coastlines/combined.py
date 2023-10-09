@@ -171,9 +171,7 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
 
 
 def mask_pixels_by_tide(
-        ds: xr.Dataset,
-        tide_data_location: str,
-        tide_centre: float
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float
 ) -> xr.Dataset:
     tides, tides_lowres = pixel_tides(
         ds, resample=True, directory=tide_data_location, dask_compute=True
@@ -192,9 +190,7 @@ def mask_pixels_by_tide(
 
 
 def filter_by_tides(
-    ds: xr.Dataset,
-    tide_data_location: str,
-    tide_centre: float
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float
 ) -> xr.Dataset:
     tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location)
 

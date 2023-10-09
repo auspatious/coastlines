@@ -6,7 +6,6 @@ import click
 import fsspec
 import geopandas as gpd
 import yaml
-from datacube.utils.geometry import Geometry
 from geopandas import GeoDataFrame
 from s3path import S3Path
 
@@ -60,12 +59,12 @@ def load_json(grid_path: str) -> GeoDataFrame:
     return gridcell_gdf
 
 
-def get_study_site_geometry(grid_path: str, study_area: str) -> Geometry:
+def get_study_site_geometry(grid_path: str, study_area: str) -> gpd.GeoDataFrame:
     # Grid cells used to process the analysis
     gridcell_gdf = load_json(grid_path)
     gridcell_gdf = gridcell_gdf.loc[[study_area]]
 
-    return Geometry(gridcell_gdf.iloc[0].values[0], crs=gridcell_gdf.crs)
+    return gridcell_gdf
 
 
 click_config_path = click.option(

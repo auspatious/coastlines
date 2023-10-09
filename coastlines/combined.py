@@ -170,31 +170,41 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
     return ds, items
 
 
+def mask_pixels_by_tide(
+        ds: xr.Dataset,
+        tide_data_location: str,
+        tide_centre: float
+) -> xr.Dataset:
+    tides, tides_lowres = pixel_tides(
+        ds, resample=True, directory=tide_data_location, dask_compute=True
+    )
+
+    tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
+        ds, tides_lowres, tide_centre=tide_centre, reproject=True
+    )
+
+    extreme_tides = (tides <= tide_cutoff_min) | (tides >= tide_cutoff_max)
+
+    # Filter out the extreme high- and low-tide pixels
+    ds = ds.where(~extreme_tides)
+
+    return ds
+
+
 def filter_by_tides(
     ds: xr.Dataset,
     tide_data_location: str,
-    tide_centre: float,
-    use_highres: bool = True,
+    tide_centre: float
 ) -> xr.Dataset:
-    if use_highres:
-        tides, tides_lowres = pixel_tides(
-            ds, resample=True, directory=tide_data_location
-        )
-    else:
-        tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location)
+    tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location)
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
-        ds, tides_lowres, tide_centre=tide_centre, reproject=use_highres
+        ds, tides_lowres, tide_centre=tide_centre, reproject=False
     )
 
-    if use_highres:
-        extreme_tides = (tides <= tide_cutoff_min) | (tides >= tide_cutoff_max)
-        # Filter out the extreme high- and low-tide pixels
-        ds = ds.where(~extreme_tides)
-    else:
-        extreme_tides = (tides_lowres <= tide_cutoff_min) | (
-            tides_lowres >= tide_cutoff_max
-        )
+    extreme_tides = (tides_lowres <= tide_cutoff_min) | (
+        tides_lowres >= tide_cutoff_max
+    )
 
     # Filter out empty scenes
     filtered = ds.sel(time=extreme_tides.sum(dim=["x", "y"]) == 0)
@@ -290,8 +300,7 @@ def process_coastlines(
     geometry = get_study_site_geometry(config["Input files"]["grid_path"], study_area)
     log.info(f"Loaded geometry for study area {study_area}")
 
-    boundingbox = geometry.buffer(buffer).boundingbox
-    bbox = [boundingbox.left, boundingbox.bottom, boundingbox.right, boundingbox.top]
+    bbox = list(geometry.buffer(buffer).bounds.values[0])
     log.info(f"Using bounding box: {bbox}")
 
     query = {
@@ -305,7 +314,7 @@ def process_coastlines(
         ds, items = load_and_mask_data_with_stac(config, query)
         log.info(f"Found {len(items)} items to load.")
     else:
-        raise NotImplementedError("Only STAC loading is supported")
+        raise NotImplementedError("Only STAC loading is currently supported")
 
     # Calculate tides and combine with the data
     log.info("Filtering by tides")
@@ -319,10 +328,12 @@ def process_coastlines(
         log.info("Loading daily dataset into memory")
         ds = ds.compute()
 
+    log.info("Running per-pixel tide masking at high resolution")
+    ds = mask_pixels_by_tide(ds, tide_data_location, tide_centre)
+
     # Loading combined yearly composites
     log.info("Generating yearly composites")
     combined_ds = generate_yearly_composites(ds, start_year, end_year)
-    # combined_ds = yearly_ds.where(yearly_ds["count"] > 5, yearly_ds["gapfill"])
 
     if not load_early:
         log.info("Loading annual dataset into memory")

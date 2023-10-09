@@ -315,7 +315,7 @@ def process_coastlines(
     # Calculate tides and combine with the data
     log.info("Filtering by tides")
     n_times = len(ds.time)
-    ds = filter_by_tides(ds, tide_data_location, tide_centre, use_highres=False)
+    ds = filter_by_tides(ds, tide_data_location, tide_centre)
     log.info(
         f"Dropped {n_times - len(ds.time)} out of {n_times} times due to extreme tides"
     )

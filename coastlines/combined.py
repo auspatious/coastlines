@@ -265,6 +265,9 @@ def export_results(
         output_points = f"s3:/{output_points}"
         output_contours = f"s3:/{output_contours}"
     else:
+        output_path = output_contours.parent
+        output_path.mkdir(parents=True, exist_ok=True)
+
         if output_contours.exists():
             output_contours.unlink()
 
@@ -394,8 +397,8 @@ def process_coastlines(
     )
 
     # Clip to the study area
-    points_gdf = points_gdf.clip(geometry.to_crs(points_gdf.crs).geom)
-    contours_gdf = contours_gdf.clip(geometry.to_crs(contours_gdf.crs).geom)
+    points_gdf = points_gdf.clip(geometry.to_crs(points_gdf.crs))
+    contours_gdf = contours_gdf.clip(geometry.to_crs(contours_gdf.crs))
 
     log.info(f"Writing to files to {output_location}")
     outputs = export_results(

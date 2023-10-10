@@ -158,11 +158,11 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
             s3.upload_file(
                 temp_geopackage, output_geopackage.bucket, output_geopackage.key
             )
+            written.append(f"s3:/{output_geopackage}")
         else:
             output_geopackage.parent.mkdir(parents=True, exist_ok=True)
             Path(temp_geopackage).rename(output_geopackage)
-
-        written.append(output_geopackage)
+            written.append(output_geopackage)
 
     return written
 

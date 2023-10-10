@@ -320,7 +320,7 @@ def process_coastlines(
     n_times = len(ds.time)
     ds = filter_by_tides(ds, tide_data_location, tide_centre)
     log.info(
-        f"Dropped {n_times - len(ds.time)} out of {n_times} times due to extreme tides"
+        f"Dropped {n_times - len(ds.time)} out of {n_times} timesteps due to extreme tides"
     )
 
     if load_early:

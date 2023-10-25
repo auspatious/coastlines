@@ -108,7 +108,7 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
     )
 
     epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
-    most_common_epsg = epsg_codes.most_common(1)[0][0]
+    epsg_code = epsg_codes.most_common(1)[0][0]
 
     n_items = len(items)
     if n_items < 50:
@@ -120,7 +120,8 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
         items,
         bands=["green", "swir16", "qa_pixel"],
         **query,
-        crs=most_common_epsg,
+        resampling={"qa_pixel": "nearest", "*": "average"},
+        crs=epsg_code,
         resolution=30,
         stac_cfg=STAC_CFG,
         chunks={"x": 10000, "y": 10000, "time": 1},
@@ -171,7 +172,7 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
 
 
 def mask_pixels_by_tide(
-    ds: xr.Dataset, tide_data_location: str, tide_centre: float
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float, debug: bool = False
 ) -> xr.Dataset:
     tides, tides_lowres = pixel_tides(
         ds, resample=True, directory=tide_data_location, dask_compute=True
@@ -185,6 +186,9 @@ def mask_pixels_by_tide(
 
     # Filter out the extreme high- and low-tide pixels
     ds = ds.where(~extreme_tides)
+
+    if debug:
+        return ds, tides, tides_lowres, extreme_tides
 
     return ds
 

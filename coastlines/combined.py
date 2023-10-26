@@ -121,11 +121,11 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
         bands=["green", "swir16", "qa_pixel"],
         **query,
         resampling={"qa_pixel": "nearest", "*": "average"},
+        group_by="solar_day",
         crs=epsg_code,
         resolution=30,
         stac_cfg=STAC_CFG,
         chunks={"x": 10000, "y": 10000, "time": 1},
-        group_by="solar_day",
         patch_url=http_to_s3_url,
         fail_on_error=False,
     )

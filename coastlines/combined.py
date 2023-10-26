@@ -98,23 +98,30 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
 
     client = Client.open(stac_api_url)
 
-    # Filtering for Tier1 data only
-    items = list(
-        client.search(
-            collections=collections,
-            query={"landsat:collection_category": {"in": ["T1"]}},
-            **query,
-        ).get_all_items()
+    # Search for STAC Items. First for only T1 then for both T1 and T2
+    query["collections"] = collections
+    search = client.search(
+        query={"landsat:collection_category": {"in": ["T1"]}},
+        **query,
     )
+    n_items = search.matched()
 
-    epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
-    epsg_code = epsg_codes.most_common(1)[0][0]
+    if n_items < 50:
+        print("Warning, not enough T1 items found, searching for T2 items as well")
+        search = client.search(
+            **query,
+        )
+        n_items = search.matched()
 
-    n_items = len(items)
     if n_items < 50:
         raise CoastlinesException(
-            f"Found {n_items} items. This is not enough to do a reliable process."
+            f"Found {n_items} items using both T1 and T2 scenes. This is not enough to do a reliable process."
         )
+    
+    items = list(search.get_items())
+    
+    epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
+    epsg_code = epsg_codes.most_common(1)[0][0]
 
     ds = load(
         items,

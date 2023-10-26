@@ -214,7 +214,11 @@ def filter_by_tides(
     )
 
     # Filter out empty scenes
-    filtered = ds.sel(time=extreme_tides.sum(dim=["x", "y"]) == 0)
+    filtered = ds.sel(time=~extreme_tides.all(dim=["x", "y"]))
+
+    # Check we have some scenes remaining after!
+    if len(filtered.time) == 0:
+        raise CoastlinesException("No data remains after filtering for extreme tides.")
 
     return filtered
 

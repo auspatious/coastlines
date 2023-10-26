@@ -117,9 +117,9 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
         raise CoastlinesException(
             f"Found {n_items} items using both T1 and T2 scenes. This is not enough to do a reliable process."
         )
-    
+
     items = list(search.get_items())
-    
+
     epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
     epsg_code = epsg_codes.most_common(1)[0][0]
 

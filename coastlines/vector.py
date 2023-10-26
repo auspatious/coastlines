@@ -16,6 +16,11 @@ import os
 import sys
 import warnings
 
+
+from odc.algo import mask_cleanup
+from odc.stac import load
+from planetary_computer import sign_url
+from pystac_client import Client
 import click
 import datacube  # noqa
 import geohash as gh
@@ -640,11 +645,6 @@ def contours_preprocess(
     ocean_da = odc.geo.xr.xr_zeros(combined_ds.odc.geobox) == 0
 
     if mask_with_esa_wc:
-        from odc.algo import mask_cleanup
-        from odc.stac import load
-        from planetary_computer import sign, sign_url
-        from pystac_client import Client
-
         pc_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
         pc_client = Client.open(pc_url)
 
@@ -656,16 +656,24 @@ def contours_preprocess(
         water_value = 80
         collection = "esa-worldcover"
 
-        items = pc_client.search(
-            collections=[collection], bbox=bbox, datetime=lc_year
-        ).get_all_items()
+        items = list(
+            pc_client.search(
+                collections=[collection], bbox=bbox, datetime=lc_year
+            ).get_items()
+        )
 
-        landcover = load(items, geobox=combined_ds.odc.geobox, patch_url=sign_url)
+        # Check for no items here
+        if len(items) == 0:
+            print("Warning, no ESA World Cover data found here")
+            mask_with_esa_wc = False
+            # TODO: Consider raising an exception here
+        else:
+            landcover = load(items, geobox=combined_ds.odc.geobox, patch_url=sign_url)
 
-        # Create a binary mask for water. A higher number is less masking.
-        ocean_da = mask_cleanup(
-            landcover[band_name] == water_value, [("erosion", 50)]
-        ).squeeze(dim="time")
+            # Create a binary mask for water. A higher number is less masking.
+            ocean_da = mask_cleanup(
+                landcover[band_name] == water_value, [("erosion", 50)]
+            ).squeeze(dim="time")
 
     # Use all time and Geodata 100K data to produce the buffered coastal
     # study area. The output has values of 0 representing non-coastal

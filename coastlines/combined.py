@@ -381,7 +381,10 @@ def process_coastlines(
     ).set_index("year")
 
     log.info("Calculating annual movements and statistics")
-    points_gdf = points_on_line(contours_gdf, baseline_year, distance=30)
+    try:
+        points_gdf = points_on_line(contours_gdf, baseline_year, distance=30)
+    except KeyError:
+        raise CoastlinesException("No data found for baseline year.")
 
     points_gdf = annual_movements(
         points_gdf,

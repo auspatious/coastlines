@@ -27,7 +27,7 @@ import geohash as gh
 import geopandas as gpd
 import numpy as np
 import odc.algo  # noqa
-import odc.geo.xr  # noqa
+from odc.geo.xr import xr_zeros
 import pandas as pd
 import pyproj
 import rioxarray  # noqa: F401
@@ -639,10 +639,10 @@ def contours_preprocess(
     #     ).land.squeeze("time")
     #     ocean_da = xr.apply_ufunc(binary_erosion, geodata_da == 0, disk(10))
     # except (AttributeError, OperationalError):
-    #     ocean_da = odc.geo.xr.xr_zeros(combined_ds.odc.geobox) == 0
+    #     ocean_da = xr_zeros(combined_ds.odc.geobox) == 0
 
     # TODO: Fix backwards compatiblity with DEA ^
-    ocean_da = odc.geo.xr.xr_zeros(combined_ds.odc.geobox) == 0
+    ocean_da = xr_zeros(combined_ds.odc.geobox) == 0
 
     if mask_with_esa_wc:
         pc_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
@@ -672,7 +672,7 @@ def contours_preprocess(
 
             # Create a binary mask for water. A higher number is less masking.
             ocean_da = mask_cleanup(
-                landcover[band_name] == water_value, [("erosion", 50)]
+                landcover[band_name] == water_value, [("erosion", 30)]
             ).squeeze(dim="time")
 
     # Use all time and Geodata 100K data to produce the buffered coastal

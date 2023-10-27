@@ -55,7 +55,7 @@ def wms_fields(gdf):
 def generate_hotspots(shorelines_gdf, ratesofchange_gdf, hotspots_radii, baseline_year):
     hotspots = []
 
-    for i, radius in enumerate(hotspots_radii):
+    for radius in hotspots_radii:
         # Extract hotspot points
         hotspots_gdf = points_on_line(
             shorelines_gdf,

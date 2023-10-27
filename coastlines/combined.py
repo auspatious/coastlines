@@ -109,11 +109,12 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
     if n_items < 50:
         print("Warning, not enough T1 items found, searching for T2 items as well")
         search = client.search(
+            # query={"platform": {"in": ["landsat-9", "landsat-8"]}}
             **query,
         )
         n_items = search.matched()
 
-    if n_items < 50:
+    if n_items < 200:
         raise CoastlinesException(
             f"Found {n_items} items using both T1 and T2 scenes. This is not enough to do a reliable process."
         )
@@ -524,8 +525,7 @@ def cli(
             log,
             load_early=load_early,
         )
-
-    except Exception as e:
+    except CoastlinesException as e:
         log.exception(f"Study area {study_area}: Failed to run process with error {e}")
         sys.exit(1)
 

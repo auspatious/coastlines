@@ -92,9 +92,12 @@ def get_output_path(
     return output_path
 
 
-def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
-    stac_api_url = config["STAC config"]["stac_api_url"]
-    collections = config["STAC config"]["stac_collections"]
+def load_and_mask_data_with_stac(config: dict, query: dict, upper_scene_limit: int = 3000, lower_scene_limit: int = 200) -> xr.Dataset:
+    stac_config = config["STAC config"]
+    stac_api_url = stac_config["stac_api_url"]
+    collections = stac_config["stac_collections"]
+    lower_limit = stac_config.get("lower_scene_limit", lower_scene_limit)
+    upper_limit = stac_config.get("upper_scene_limit", upper_scene_limit)
 
     client = Client.open(stac_api_url)
 
@@ -106,15 +109,25 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
     )
     n_items = search.matched()
 
-    if n_items < 50:
+    # If we don't have enough T1 items, search for T2 as well
+    if n_items < lower_limit:
         print("Warning, not enough T1 items found, searching for T2 items as well")
         search = client.search(
-            # query={"platform": {"in": ["landsat-9", "landsat-8"]}}
             **query,
         )
         n_items = search.matched()
 
-    if n_items < 200:
+    # If we have too many items, filter out some high-cloud scenes
+    if n_items > upper_limit:
+        print("Warning, too many items found. Filtering out some high-cloud scenes")
+        search = client.search(
+            query={"eo:cloud_cover": {"lt": 80}},
+            **query,
+        )
+        n_items = search.matched()
+
+    # If we still have too few items, raise an error
+    if n_items < lower_limit:
         raise CoastlinesException(
             f"Found {n_items} items using both T1 and T2 scenes. This is not enough to do a reliable process."
         )
@@ -143,7 +156,7 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
 
     # Get cloud and cloud shadow mask
     # mask_bitfields = [1, 2, 3, 4]  # dilated cloud, cirrus, cloud, cloud shadow
-    mask_bitfields = [3, 4]  # dilated cloud, cirrus, cloud, cloud shadow
+    mask_bitfields = [3, 4]  # cloud, cloud shadow
     bitmask = 0
     for field in mask_bitfields:
         bitmask |= 1 << field
@@ -151,7 +164,6 @@ def load_and_mask_data_with_stac(config: dict, query: dict) -> xr.Dataset:
     # Get cloud mask
     cloud_mask = ds["qa_pixel"].astype(int) & bitmask != 0
     # Expand and contract the mask to clean it up
-    # TODO: Check the opening and dilation of MASK
     dilated_mask = mask_cleanup(cloud_mask, [("opening", 10), ("dilation", 5)])
 
     final_mask = nodata_mask | dilated_mask

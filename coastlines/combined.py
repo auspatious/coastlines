@@ -92,7 +92,12 @@ def get_output_path(
     return output_path
 
 
-def load_and_mask_data_with_stac(config: dict, query: dict, upper_scene_limit: int = 3000, lower_scene_limit: int = 200) -> xr.Dataset:
+def load_and_mask_data_with_stac(
+    config: dict,
+    query: dict,
+    upper_scene_limit: int = 3000,
+    lower_scene_limit: int = 200,
+) -> xr.Dataset:
     stac_config = config["STAC config"]
     stac_api_url = stac_config["stac_api_url"]
     collections = stac_config["stac_collections"]

@@ -5,3 +5,5 @@ STAC config:
     stac_api_url: "https://landsatlook.usgs.gov/stac-server"
     stac_collections: 
         - "landsat-c2l2-sr"
+    lower_scene_limit: 200
+    upper_scene_limit: 3000

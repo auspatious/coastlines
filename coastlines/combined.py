@@ -126,7 +126,7 @@ def load_and_mask_data_with_stac(
     if n_items > upper_limit:
         print("Warning, too many items found. Filtering out some high-cloud scenes")
         search = client.search(
-            query={"eo:cloud_cover": {"lt": 80}},
+            query={"eo:cloud_cover": {"lt": 50}},
             **query,
         )
         n_items = search.matched()

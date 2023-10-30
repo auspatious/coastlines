@@ -386,7 +386,7 @@ def process_coastlines(
         index_threshold=index_threshold,
         mask_with_esa_wc=True,
         buffer_pixels=33,
-        mask_modifications=modifications_gdf,
+        modifications_gdf=modifications_gdf,
     )
     # Extract shorelines
     log.info("Extracting shorelines")

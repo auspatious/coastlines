@@ -491,7 +491,7 @@ def contours_preprocess(
     index_threshold=0.0,
     buffer_pixels=50,
     mask_with_esa_wc=False,
-    mask_modifications=None,
+    modifications_gdf=None,
     debug=False,
 ):
     """
@@ -689,14 +689,14 @@ def contours_preprocess(
     # Optionally modify the coastal mask using manually supplied
     # polygons to add missing areas of shoreline, or remove unwanted
     # areas from the mask.
-    if mask_modifications is not None:
+    if modifications_gdf is not None:
         # Only proceed if there are polygons available
-        if len(mask_modifications.index) > 0:
+        if len(modifications_gdf.index) > 0:
             # Convert type column to integer, with 1 representing pixels
             # to add to the coastal mask (by setting them as "coastal"
             # pixels, and 2 representing pixels to remove from the mask
             # (by setting them as "inland data")
-            mask_modifications = mask_modifications.replace({"add": 1, "remove": 2})
+            mask_modifications = modifications_gdf.replace({"add": 1, "remove": 2})
 
             # Rasterise polygons into extent of satellite data
             modifications_da = xr_rasterize(
@@ -706,6 +706,13 @@ def contours_preprocess(
             # Where `modifications_da` has a value other than 0,
             # replace values from `coastal_mask` with `modifications_da`
             coastal_mask = coastal_mask.where(modifications_da == 0, modifications_da)
+
+            # This needs more testing as it doesn't work yet...
+            # # Add the "add" areas to the ocean_da
+            # ocean_da = ocean_da.where(modifications_da != 1, 0)
+
+            # # Remove the "remove" areas from the ocean_da
+            # ocean_da = ocean_da.where(modifications_da != 2, 1)
 
     # Generate individual annual masks by selecting only water pixels that
     # are directly connected to the ocean in each yearly timestep

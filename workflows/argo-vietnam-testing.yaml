@@ -23,11 +23,11 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.3.0-17-g42cc491"
+        value: "0.4.0"
       - name: result-version
-        value: "0.3.3"
+        value: "0.4.0"
       - name: tiles-file
-        value: "https://raw.githubusercontent.com/auspatious/dea-coastlines/03a7e0e87d0684caa60efbcca0a56618290f2374/data/raw/vietnam_tiles.geojson"
+        value: "https://raw.githubusercontent.com/auspatious/dea-coastlines/88fdaa77e0038aa3ea898cf8940cc875b5ec0e99/data/raw/vietnam_tiles.geojson"
       - name: tiles-subset
         value: '[]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
@@ -134,7 +134,7 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            memory: 120Gi
+            memory: 130Gi
             cpu: 8.0
           limits:
             cpu: 12.0

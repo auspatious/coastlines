@@ -26,10 +26,8 @@ spec:
         value: "0.4.0"
       - name: result-version
         value: "0.4.0"
-      - name: tiles-file
-        value: "https://raw.githubusercontent.com/auspatious/dea-coastlines/88fdaa77e0038aa3ea898cf8940cc875b5ec0e99/data/raw/vietnam_tiles.geojson"
       - name: tiles-subset
-        value: '[]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
+        value: '[\"18,26\", \"14,47\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
         value: configs/vietnam_coastlines_config.yaml
       - name: start-year
@@ -52,18 +50,12 @@ spec:
           template: generate
           arguments:
             parameters:
-              - name: tiles-file
-                value: "{{workflow.parameters.tiles-file}}"
+              - name: config
+                value: "{{workflow.parameters.config}}"
               - name: tiles-subset
                 value: "{{workflow.parameters.tiles-subset}}"
 
         - name: process-id
-          # Retry here is to attempt to handle STAC API failures
-          # retryStrategy: 
-          #   limit: "3"
-          #   backoff:
-          #     duration: 2m
-          #     factor: 2
           depends: generate-ids.Succeeded
           template: process
           withParam: "{{tasks.generate-ids.outputs.result}}"
@@ -103,7 +95,7 @@ spec:
     - name: generate
       inputs:
         parameters:
-          - name: tiles-file
+          - name: config
           - name: tiles-subset
       container:
         image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
@@ -111,7 +103,7 @@ spec:
         args:
           - >-
             coastlines-print-tiles
-            --tiles-file {{inputs.parameters.tiles-file}}
+            --config-file {{inputs.parameters.config}}
             --tiles-subset "{{inputs.parameters.tiles-subset}}"
 
     - name: process

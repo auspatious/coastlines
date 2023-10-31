@@ -1,9 +1,11 @@
-import sys
 import json
+import sys
+from json.decoder import JSONDecodeError
+from typing import Optional
+
 import click
 
-from coastlines.utils import load_json, load_config
-from typing import Optional
+from coastlines.utils import load_config, load_json
 
 
 def read_tiles_subset_string(tiles_subset: str) -> list:
@@ -19,11 +21,18 @@ def cli(config_file: str, tiles_subset: str, limit: Optional[int]) -> None:
     print(f"Loaded config from {config_file}")
     tiles = load_json(config["Input files"]["grid_path"])
 
-    tiles_subset = read_tiles_subset_string(tiles_subset)
-    if len(tiles_subset) == 0:
-        pass
-    else:
-        tiles = tiles.loc[tiles_subset]
+    try:
+        subset_list = read_tiles_subset_string(tiles_subset)
+    except JSONDecodeError:
+        print(f"Tiles subset '{tiles_subset}' is not a valid JSON string")
+        sys.exit(1)
+
+    if len(subset_list) != 0:
+        try:
+            tiles = tiles.loc[subset_list]
+        except KeyError:
+            print("One or more tile keys was not found in the grid file")
+            sys.exit(1)
 
     if limit is not None:
         tiles = tiles[:limit]

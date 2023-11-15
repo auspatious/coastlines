@@ -441,12 +441,18 @@ def process_coastlines(
 
     # Clip to the study area
     movement_points = movement_points.clip(geometry.to_crs(movement_points.crs))
-    contours_with_certainty = contours_with_certainty.clip(geometry.to_crs(contours_with_certainty.crs))
+    contours_with_certainty = contours_with_certainty.clip(
+        geometry.to_crs(contours_with_certainty.crs)
+    )
 
     # Write results
     log.info(f"Writing to files to {output_location}")
     outputs = export_results(
-        movement_points, contours_with_certainty, output_version, output_location, study_area
+        movement_points,
+        contours_with_certainty,
+        output_version,
+        output_location,
+        study_area,
     )
 
     for output in outputs:

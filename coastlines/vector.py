@@ -16,7 +16,7 @@ import os
 import sys
 import warnings
 
-
+from typing import Union
 from odc.algo import mask_cleanup
 from odc.stac import load
 from planetary_computer import sign_url
@@ -46,6 +46,8 @@ from skimage.morphology import (
     disk,
 )
 from sqlalchemy.exc import OperationalError  # noqa
+
+from geopandas import GeoDataFrame
 
 from coastlines.utils import (
     click_baseline_year,
@@ -464,7 +466,7 @@ def contour_certainty(contours_gdf, certainty_masks):
 
         # Assign each shoreline segment with attributes from certainty mask
         contour_gdf = contour_gdf.overlay(
-            certainty_masks[year].reset_index(), how="intersection"
+            certainty_masks[str(year)].reset_index(), how="intersection"
         )
 
         # Set year field and use as index
@@ -483,6 +485,77 @@ def contour_certainty(contours_gdf, certainty_masks):
     contours_gdf.loc[pinatubo_lat, "certainty"] = "aerosol issues"
 
     return contours_gdf
+
+
+def points_certainty(
+    points_gdf: GeoDataFrame,
+    geomorphology_gdf: Union[GeoDataFrame, None] = None,
+    baseline_year: int = 2022,
+) -> GeoDataFrame:
+    # Add certainty column to flag points with:
+    # - Baseline outlier: The baseline shoreline is itself flagged as an
+    #   outlier, potentially resulting in inaccurate rates of change.
+    # - Likely rocky shorelines: Rates of change can be unreliable in areas
+    #   with steep rocky/bedrock shorelines due to terrain shadow.
+    # - Extreme rate of change value (> 50 m per year change): these are more
+    #   likely to reflect modelling issues than real-world coastal change
+    # - High angular variability: the nearest shorelines for each year do not
+    #   fall on an approximate line, making rates of change invalid
+    # - Insufficient observations: less than 75% valid annual shorelines, which
+    #   make the resulting rates of change more likely to be inaccurate
+    rocky = [
+        "Bedrock breakdown debris (cobbles/boulders)",
+        "Boulder (rock) beach",
+        "Cliff (>5m) (undiff)",
+        "Colluvium (talus) undiff",
+        "Flat boulder deposit (rock) undiff",
+        "Hard bedrock shore",
+        "Hard bedrock shore inferred",
+        "Hard rock cliff (>5m)",
+        "Hard rocky shore platform",
+        "Rocky shore (undiff)",
+        "Rocky shore platform (undiff)",
+        "Sloping hard rock shore",
+        "Sloping rocky shore (undiff)",
+        "Soft `bedrock¿ cliff (>5m)",
+        "Steep boulder talus",
+        "Hard rocky shore platform",
+    ]
+
+    # Initialise certainty column with good values
+    points_gdf["certainty"] = "good"
+
+    # Flag points where the baseline shoreline is itself an outlier
+    points_gdf.loc[
+        points_gdf.outl_time.str.contains(str(baseline_year)), "certainty"
+    ] = "baseline outlier"
+
+    if geomorphology_gdf is not None:
+        # Flag rocky shorelines
+        points_gdf.loc[
+            rocky_shoreline_flag(
+                points_gdf,
+                geomorphology_gdf,
+                rocky_query=f"(INTERTD1_V in {rocky}) & (INTERTD2_V in {rocky + ['Unclassified']})",
+            ),
+            "certainty",
+        ] = "likely rocky coastline"
+
+    # Flag extreme rates of change
+    points_gdf.loc[
+        points_gdf.rate_time.abs() > 50, "certainty"
+    ] = "extreme value (> 50 m)"
+
+    # Flag points where change does not fall on a line
+    points_gdf.loc[points_gdf.angle_std > 30, "certainty"] = "high angular variability"
+
+    # Flag shorelines with less than X valid shorelines
+    valid_obs_thresh = int(points_gdf.columns.str.contains("dist_").sum() * 0.75)
+    points_gdf.loc[
+        points_gdf.valid_obs < valid_obs_thresh, "certainty"
+    ] = "insufficient observations"
+
+    return points_gdf
 
 
 def contours_preprocess(
@@ -624,24 +697,8 @@ def contours_preprocess(
     rivers = rivers.where(river_mouth_mask, False)
     river_mask = ~xr.apply_ufunc(binary_dilation, rivers, disk(4))
 
-    # Load Geodata 100K coastal layer to use to separate ocean waters from
-    # other inland waters. This product has values of 0 for ocean waters,
-    # and values of 1 and 2 for mainland/island pixels. We extract ocean
-    # pixels (value 0), then erode these by 10 pixels to ensure we only
-    # use high certainty deeper water ocean regions for identifying ocean
-    # pixels in our satellite imagery. If no Geodata data exists (e.g.
-    # over remote ocean waters, use an all True array to represent ocean.
-    # try:
-    #     dc = datacube.Datacube()
-    #     geodata_da = dc.load(
-    #         product="geodata_coast_100k",
-    #         like=combined_ds.odc.geobox.compat,
-    #     ).land.squeeze("time")
-    #     ocean_da = xr.apply_ufunc(binary_erosion, geodata_da == 0, disk(10))
-    # except (AttributeError, OperationalError):
-    #     ocean_da = xr_zeros(combined_ds.odc.geobox) == 0
-
-    # TODO: Fix backwards compatiblity with DEA ^
+    # This needs checking, as if there's no ocean anywhere some of
+    # the logic below is wrong.
     ocean_da = xr_zeros(combined_ds.odc.geobox) == 0
 
     if mask_with_esa_wc:
@@ -707,7 +764,7 @@ def contours_preprocess(
             # replace values from `coastal_mask` with `modifications_da`
             coastal_mask = coastal_mask.where(modifications_da == 0, modifications_da)
 
-            # This needs more testing as it doesn't work yet...
+            # TODO: This needs more testing as it doesn't work yet...
             # # Add the "add" areas to the ocean_da
             # ocean_da = ocean_da.where(modifications_da != 1, 0)
 
@@ -1307,7 +1364,7 @@ def rocky_shoreline_flag(
     return (joined["rocky"] == True).groupby(joined.index).max()  # noqa
 
 
-def region_atttributes(gdf, region_gdf, attribute_col="TERRITORY1", rename_col=False):
+def region_attributes(gdf, region_gdf, attribute_col="TERRITORY1", rename_col=False):
     """
     Produces an attribute column for each rates of change point or
     annual shoreline in the dataset by spatially joining regions from an
@@ -1582,74 +1639,12 @@ def generate_vectors(
         )
         log.info(f"Study area {study_area}: Calculated all of time statistics")
 
-        # Add certainty column to flag points with:
-        # - Baseline outlier: The baseline shoreline is itself flagged as an
-        #   outlier, potentially resulting in inaccurate rates of change.
-        # - Likely rocky shorelines: Rates of change can be unreliable in areas
-        #   with steep rocky/bedrock shorelines due to terrain shadow.
-        # - Extreme rate of change value (> 50 m per year change): these are more
-        #   likely to reflect modelling issues than real-world coastal change
-        # - High angular variability: the nearest shorelines for each year do not
-        #   fall on an approximate line, making rates of change invalid
-        # - Insufficient observations: less than 75% valid annual shorelines, which
-        #   make the resulting rates of change more likely to be inaccurate
-        rocky = [
-            "Bedrock breakdown debris (cobbles/boulders)",
-            "Boulder (rock) beach",
-            "Cliff (>5m) (undiff)",
-            "Colluvium (talus) undiff",
-            "Flat boulder deposit (rock) undiff",
-            "Hard bedrock shore",
-            "Hard bedrock shore inferred",
-            "Hard rock cliff (>5m)",
-            "Hard rocky shore platform",
-            "Rocky shore (undiff)",
-            "Rocky shore platform (undiff)",
-            "Sloping hard rock shore",
-            "Sloping rocky shore (undiff)",
-            "Soft `bedrock¿ cliff (>5m)",
-            "Steep boulder talus",
-            "Hard rocky shore platform",
-        ]
-
-        # Initialise certainty column with good values
-        points_gdf["certainty"] = "good"
-
-        # Flag points where the baseline shoreline is itself an outlier
-        points_gdf.loc[
-            points_gdf.outl_time.str.contains(str(baseline_year)), "certainty"
-        ] = "baseline outlier"
-
-        # Flag rocky shorelines
-        points_gdf.loc[
-            rocky_shoreline_flag(
-                points_gdf,
-                geomorphology_gdf,
-                rocky_query=f"(INTERTD1_V in {rocky}) & (INTERTD2_V in {rocky + ['Unclassified']})",
-            ),
-            "certainty",
-        ] = "likely rocky coastline"
-
-        # Flag extreme rates of change
-        points_gdf.loc[
-            points_gdf.rate_time.abs() > 50, "certainty"
-        ] = "extreme value (> 50 m)"
-
-        # Flag points where change does not fall on a line
-        points_gdf.loc[
-            points_gdf.angle_std > 30, "certainty"
-        ] = "high angular variability"
-
-        # Flag shorelines with less than X valid shorelines
-        valid_obs_thresh = int(points_gdf.columns.str.contains("dist_").sum() * 0.75)
-        points_gdf.loc[
-            points_gdf.valid_obs < valid_obs_thresh, "certainty"
-        ] = "insufficient observations"
-
+        # Add certainty column to points dataset
+        points_gdf = points_certainty(points_gdf, geomorphology_gdf)
         log.info(f"Study area {study_area}: Calculated rate of change certainty flags")
 
         # Add region attributes
-        points_gdf = region_atttributes(
+        points_gdf = region_attributes(
             points_gdf, region_gdf, attribute_col="ID_Primary", rename_col="id_primary"
         )
 
@@ -1711,7 +1706,7 @@ def generate_vectors(
     contours_gdf["tide_datum"] = "0.0 m AMSL"
 
     # Add region attributes
-    contours_gdf = region_atttributes(
+    contours_gdf = region_attributes(
         contours_gdf, region_gdf, attribute_col="ID_Primary", rename_col="id_primary"
     )
 

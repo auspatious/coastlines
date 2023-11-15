@@ -41,6 +41,7 @@ from coastlines.vector import (
     contours_preprocess,
     points_on_line,
     subpixel_contours,
+    contour_certainty,
 )
 
 # TODO: work out how to pass this in...
@@ -64,8 +65,10 @@ def http_to_s3_url(http_url):
 
 
 def sanitise_tile_id(tile_id: str, zero_pad: bool = True) -> str:
-    out_tile_id = tile_id.replace(",", "_")
-    if zero_pad:
+    tile_parts = tile_id.split(",")
+    if len(tile_parts) == 2:
+        out_tile_id = "_".join([p.zfill(3) for p in tile_parts])
+    else:
         out_tile_id = out_tile_id.zfill(3)
     return out_tile_id
 
@@ -326,7 +329,7 @@ def process_coastlines(
     index_threshold: float,
     buffer: float,
     log: callable,
-    load_early: bool = False,
+    load_early: bool = True,
 ):
     # Study site geometry and config parsing
     geometry = get_study_site_geometry(config["Input files"]["grid_path"], study_area)
@@ -340,80 +343,84 @@ def process_coastlines(
         "datetime": f"{start_year - 1}/{end_year + 1}",
     }
 
-    # Load data all lazy like using dask
-    ds = None
+    # Loading data
+    data = None
     if config.get("STAC config") is not None:
-        ds, items = load_and_mask_data_with_stac(config, query)
+        data, items = load_and_mask_data_with_stac(config, query)
         log.info(f"Found {len(items)} items to load.")
     else:
         raise NotImplementedError("Only STAC loading is currently supported")
 
     # Calculate tides and combine with the data
     log.info("Filtering by tides")
-    n_times = len(ds.time)
-    ds = filter_by_tides(ds, tide_data_location, tide_centre)
+    n_times = len(data.time)
+    data = filter_by_tides(data, tide_data_location, tide_centre)
     log.info(
-        f"Dropped {n_times - len(ds.time)} out of {n_times} timesteps due to extreme tides"
+        f"Dropped {n_times - len(data.time)} out of {n_times} timesteps due to extreme tides"
     )
 
     if load_early:
         log.info("Loading daily dataset into memory")
-        ds = ds.compute()
+        data = data.compute()
 
     log.info("Running per-pixel tide masking at high resolution")
-    ds = mask_pixels_by_tide(ds, tide_data_location, tide_centre)
+    data = mask_pixels_by_tide(data, tide_data_location, tide_centre)
 
     # Loading combined yearly composites
     log.info("Generating yearly composites")
-    combined_ds = generate_yearly_composites(ds, start_year, end_year)
+    combined_data = generate_yearly_composites(data, start_year, end_year)
 
     if not load_early:
         log.info("Loading annual dataset into memory")
-        combined_ds = combined_ds.compute()
+        combined_data = combined_data.compute()
 
-    # TODO: Maybe write the combined_ds to a Zarr file somewhere
+    # TODO: Maybe write the combined_data to a Zarr file somewhere
 
     # Coastal mask modifications
     log.info("Loading vectors and pre-processing contours")
     modifications_gdf = gpd.read_file(
         config["Input files"]["modifications_path"], bbox=bbox
-    ).to_crs(str(combined_ds.odc.crs))
+    ).to_crs(str(combined_data.odc.crs))
 
     # Mask dataset to focus on coastal zone only
-    masked_ds, _ = contours_preprocess(
-        combined_ds=combined_ds,
+    masked_ds, certainty_masks = contours_preprocess(
+        combined_data=combined_data,
         water_index="mndwi",
         index_threshold=index_threshold,
         mask_with_esa_wc=True,
         buffer_pixels=33,
         modifications_gdf=modifications_gdf,
     )
+
     # Extract shorelines
     log.info("Extracting shorelines")
-    contours_gdf = subpixel_contours(
+    contours = subpixel_contours(
         da=masked_ds,
         z_values=index_threshold,
         min_vertices=10,
         dim="year",
     ).set_index("year")
 
+    # Add certainty stats to the contours
+    contours_with_certainty = contour_certainty(contours, certainty_masks)
+
     log.info("Calculating annual movements and statistics")
     try:
-        points_gdf = points_on_line(contours_gdf, baseline_year, distance=30)
+        points = points_on_line(contours, baseline_year, distance=30)
     except KeyError:
         raise CoastlinesException("No data found for baseline year.")
 
-    points_gdf = annual_movements(
-        points_gdf,
-        contours_gdf,
-        combined_ds,
+    movement_points = annual_movements(
+        points,
+        contours_with_certainty,
+        combined_data,
         str(baseline_year),
         "mndwi",
         max_valid_dist=1200,
     )
 
     # Reindex to add any missing annual columns to the dataset
-    points_gdf = points_gdf.reindex(
+    movement_points = movement_points.reindex(
         columns=[
             "geometry",
             *[f"dist_{i}" for i in range(start_year, end_year + 1)],
@@ -423,22 +430,23 @@ def process_coastlines(
     )
 
     # Calculate coastal change... this is very slow when data is busy.
-    points_gdf = calculate_regressions(points_gdf)
+    movement_points = calculate_regressions(movement_points)
 
     # Add count and span of valid obs, Shoreline Change Envelope (SCE),
     # Net Shoreline Movement (NSM) and Max/Min years
     stats_list = ["valid_obs", "valid_span", "sce", "nsm", "max_year", "min_year"]
-    points_gdf[stats_list] = points_gdf.apply(
+    movement_points[stats_list] = movement_points.apply(
         lambda x: all_time_stats(x, initial_year=start_year), axis=1
     )
 
     # Clip to the study area
-    points_gdf = points_gdf.clip(geometry.to_crs(points_gdf.crs))
-    contours_gdf = contours_gdf.clip(geometry.to_crs(contours_gdf.crs))
+    movement_points = movement_points.clip(geometry.to_crs(movement_points.crs))
+    contours_with_certainty = contours_with_certainty.clip(geometry.to_crs(contours_with_certainty.crs))
 
+    # Write results
     log.info(f"Writing to files to {output_location}")
     outputs = export_results(
-        points_gdf, contours_gdf, output_version, output_location, study_area
+        movement_points, contours_with_certainty, output_version, output_location, study_area
     )
 
     for output in outputs:
@@ -520,7 +528,7 @@ def cli(
 
     log.info("Starting Dask")
     # Set up Dask
-    _ = start_local_dask(n_workers=8, threads_per_worker=4, mem_safety_margin="2G")
+    _ = start_local_dask(n_workers=4, threads_per_worker=8, mem_safety_margin="2G")
 
     log.info("Configuring S3 access")
     # Do an opinionated configuration of S3 for data reading

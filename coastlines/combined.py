@@ -8,7 +8,7 @@ import geopandas as gpd
 import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
-from odc.algo import erase_bad, mask_cleanup, to_f32
+from odc.algo import mask_cleanup, to_f32
 from odc.stac import load, configure_s3_access
 from pystac_client import Client
 from s3path import S3Path
@@ -100,6 +100,8 @@ def load_and_mask_data_with_stac(
     query: dict,
     upper_scene_limit: int = 3000,
     lower_scene_limit: int = 200,
+    include_nir: bool = False,
+    debug: bool = False,
 ) -> xr.Dataset:
     stac_config = config["STAC config"]
     stac_api_url = stac_config["stac_api_url"]
@@ -147,7 +149,7 @@ def load_and_mask_data_with_stac(
 
     ds = load(
         items,
-        bands=["green", "swir16", "qa_pixel"],
+        bands=["green", "swir16", "nir08", "qa_pixel"],
         **query,
         resampling={"qa_pixel": "nearest", "*": "average"},
         group_by="solar_day",
@@ -159,11 +161,10 @@ def load_and_mask_data_with_stac(
         fail_on_error=False,
     )
 
-    # Get the nodata mask
-    nodata_mask = ds.green == 0
+    # Get the nodata mask, just for the two main bands
+    nodata_mask = (ds.green == 0) | (ds.swir16 == 0)
 
     # Get cloud and cloud shadow mask
-    # mask_bitfields = [1, 2, 3, 4]  # dilated cloud, cirrus, cloud, cloud shadow
     mask_bitfields = [3, 4]  # cloud, cloud shadow
     bitmask = 0
     for field in mask_bitfields:
@@ -172,29 +173,32 @@ def load_and_mask_data_with_stac(
     # Get cloud mask
     cloud_mask = ds["qa_pixel"].astype(int) & bitmask != 0
     # Expand and contract the mask to clean it up
-    dilated_mask = mask_cleanup(cloud_mask, [("opening", 10), ("dilation", 5)])
-
-    final_mask = nodata_mask | dilated_mask
-
-    ds = erase_bad(ds, final_mask)
+    dilated_cloud_mask = mask_cleanup(cloud_mask, [("opening", 10), ("dilation", 5)])
 
     # Convert to float and scale data to 0-1
     ds["green"] = to_f32(ds["green"], scale=0.0000275, offset=-0.2)
     ds["swir16"] = to_f32(ds["swir16"], scale=0.0000275, offset=-0.2)
 
-    # Remove values outside the valid range (0-1)
-    mask_invalid = (
+    if include_nir:
+        ds["nir08"] = to_f32(ds["nir08"], scale=0.0000275, offset=-0.2)
+
+    # Remove values outside the valid range (0-1), but not for nir
+    invalid_ard_values = (
         (ds["green"] < 0) | (ds["green"] > 1) | (ds["swir16"] < 0) | (ds["swir16"] > 1)
     )
-    ds = erase_bad(ds, mask_invalid)
 
     # Create MNDWI
     ds["mndwi"] = (ds["green"] - ds["swir16"]) / (ds["green"] + ds["swir16"])
 
+    # Mask the data, setting nodata to `nan`
+    final_mask = nodata_mask | dilated_cloud_mask | invalid_ard_values
+    ds = ds.where(~final_mask)
+
     # Delete unneeded data
-    del ds["green"]
-    del ds["swir16"]
-    del ds["qa_pixel"]
+    if not debug:
+        del ds["green"]
+        del ds["swir16"]
+        del ds["qa_pixel"]
 
     return ds, items
 
@@ -245,7 +249,12 @@ def filter_by_tides(
 
 
 def generate_yearly_composites(
-    ds: xr.Dataset, start_year: int, end_year: int
+    ds: xr.Dataset,
+    start_year: int,
+    end_year: int,
+    replace_with_gapfill: bool = True,
+    include_nir: bool = False,
+    debug: bool = False,
 ) -> xr.Dataset:
     # Store a list of output arrays and years, knowing we might lose empty years
     yearly_ds_list = []
@@ -263,10 +272,23 @@ def generate_yearly_composites(
             year_summary["count"] = one_year.mndwi.count(dim="time")
             year_summary["stdev"] = one_year.mndwi.std(dim="time")
 
+            if include_nir:
+                year_summary["nir"] = one_year.nir08.median(dim="time")
+
             # And a gapfill summary for the three years
             year_summary["gapfill_mndwi"] = three_years.mndwi.median(dim="time")
             year_summary["gapfill_count"] = three_years.mndwi.count(dim="time")
             year_summary["gapfill_stdev"] = three_years.mndwi.std(dim="time")
+
+            if include_nir:
+                year_summary["gapfill_nir"] = three_years.nir08.median(dim="time")
+
+            if debug:
+                year_summary["green"] = one_year.green.median(dim="time")
+                year_summary["swir"] = one_year.swir16.median(dim="time")
+
+                year_summary["gapfill_green"] = three_years.green.median(dim="time")
+                year_summary["gapfill_swir"] = three_years.swir16.median(dim="time")
 
             years.append(year)
             yearly_ds_list.append(year_summary)
@@ -277,8 +299,29 @@ def generate_yearly_composites(
         raise CoastlinesException("No data found for any years.")
 
     time_var = xr.Variable("year", years)
-
     yearly_ds = xr.concat(yearly_ds_list, dim=time_var)
+
+    if replace_with_gapfill:
+        # Remove low obs pixels and replace with 3-year gapfill
+        yearly_ds["mndwi"] = yearly_ds["mndwi"].where(yearly_ds["count"] > 5, yearly_ds[f"gapfill_mndwi"])
+        yearly_ds["stdev"] = yearly_ds["stdev"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_stdev"])
+
+        if include_nir:
+            yearly_ds["nir"] = yearly_ds["nir"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_nir"])
+        
+        yearly_ds["count"] = yearly_ds["count"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_count"])
+
+        if debug:
+            yearly_ds["green"] = yearly_ds["green"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_green"])
+            yearly_ds["swir"] = yearly_ds["swir"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_swir"])
+
+    if not debug:
+        del yearly_ds["gapfill_mndwi"]
+        del yearly_ds["gapfill_count"]
+        del yearly_ds["gapfill_stdev"]
+
+        if include_nir:
+            del yearly_ds["gapfill_nir"]
 
     return yearly_ds
 

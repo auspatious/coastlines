@@ -160,7 +160,7 @@ def load_rasters(
     return ds_list
 
 
-def ocean_masking(ds, ocean_da, connectivity=1, dilation=None):
+def ocean_masking(ds, ocean_da, connectivity=1, dilation_size=None):
     """
     Identifies ocean by selecting regions of water that overlap
     with ocean pixels. This region can be optionally dilated to
@@ -195,7 +195,7 @@ def ocean_masking(ds, ocean_da, connectivity=1, dilation=None):
         pixels as True.
     """
     # Update `ocean_da` to mask out any pixels that are land in `ds` too
-    ocean_da = ocean_da & (ds != 1)
+    ocean_da = ocean_da | (ds != 1)
 
     # First, break all time array into unique, discrete regions/blobs.
     # Fill NaN with 1 so it is treated as a background pixel
@@ -211,9 +211,9 @@ def ocean_masking(ds, ocean_da, connectivity=1, dilation=None):
 
     # Dilate mask so that we include land pixels on the inland side
     # of each shoreline to ensure contour extraction accurately
-    # seperates land and water spectra
-    if dilation:
-        ocean_mask = xr.apply_ufunc(binary_dilation, ocean_mask, disk(dilation))
+    # separates land and water spectra
+    if dilation_size is not None:
+        ocean_mask = xr.apply_ufunc(binary_dilation, ocean_mask, disk(dilation_size))
 
     return ocean_mask
 
@@ -566,6 +566,8 @@ def contours_preprocess(
     mask_with_esa_wc=False,
     modifications_gdf=None,
     debug=False,
+    include_nir=False,
+    nir_threshold=-0.002,
 ):
     """
     Prepares and preprocesses DEA Coastlines raster data to
@@ -584,11 +586,8 @@ def contours_preprocess(
 
     Parameters:
     -----------
-    yearly_ds : xarray.Dataset
+    combined_ds : xarray.Dataset
         An `xarray.Dataset` containing annual DEA Coastlines rasters.
-    gapfill_ds : xarray.Dataset
-        An `xarray.Dataset` containing three-year gapfill DEA Coastlines
-        rasters.
     water_index : string
         A string giving the name of the water index included in the
         annual and gapfill datasets (e.g. 'mndwi').
@@ -636,29 +635,23 @@ def contours_preprocess(
         problematic region. This is used to assign each output shoreline
         with a certainty column.
     """
-    masked_ds = combined_ds.copy(combined_ds)
-    # Remove low obs pixels and replace with 3-year gapfill
-    masked_ds["mndwi"] = combined_ds["mndwi"].where(
-        combined_ds["count"] > 5, combined_ds["gapfill_mndwi"]
-    )
-    masked_ds["stdev"] = combined_ds["stdev"].where(
-        combined_ds["count"] > 5, combined_ds["gapfill_stdev"]
-    )
-    masked_ds["count"] = combined_ds["count"].where(
-        combined_ds["count"] > 5, combined_ds["gapfill_count"]
-    )
-
-    del masked_ds["gapfill_mndwi"]
-    del masked_ds["gapfill_count"]
-    del masked_ds["gapfill_stdev"]
-
+    thresholded_ds = combined_ds.copy(deep=True)
     # Set any pixels with only one observation to NaN, as these are
     # extremely vulnerable to noise
-    masked_ds = masked_ds.where(masked_ds["count"] > 1)
+    masked_ds = thresholded_ds.where(combined_ds["count"] > 1)
 
     # Apply water index threshold and re-apply nodata values
     nodata = masked_ds[water_index].isnull()
-    thresholded_ds = masked_ds[water_index] < index_threshold
+    ndwi_water = masked_ds[water_index] < index_threshold
+
+    # Include a NIR threshold, from DE Pacific's example
+    if include_nir:
+        nir_water = combined_ds.nir < nir_threshold
+        thresholded_ds = ndwi_water & nir_water
+    else:
+        thresholded_ds = ndwi_water
+
+    # Mask out the nodata
     thresholded_ds = thresholded_ds.where(~nodata)
 
     # Compute temporal mask that restricts the analysis to land pixels
@@ -708,15 +701,13 @@ def contours_preprocess(
         bb = combined_ds.odc.geobox.boundingbox.to_crs(4326)
         bbox = [bb.left, bb.bottom, bb.right, bb.top]
 
-        lc_year = "2021"
-        band_name = "map"
-        water_value = 80
-        collection = "esa-worldcover"
+        WATER = 80
+        NODATA = 0
 
         items = list(
             pc_client.search(
-                collections=[collection], bbox=bbox, datetime=lc_year
-            ).get_items()
+                collections=["esa-worldcover"], bbox=bbox, datetime="2021"
+            ).items()
         )
 
         # Check for no items here
@@ -725,11 +716,12 @@ def contours_preprocess(
             mask_with_esa_wc = False
             # TODO: Consider raising an exception here
         else:
-            landcover = load(items, geobox=combined_ds.odc.geobox, patch_url=sign_url)
+            landcover = load(items, geobox=combined_ds.odc.geobox, patch_url=sign_url, bands=["map"])["map"]
+            water = (landcover == WATER) | (landcover == NODATA)
 
             # Create a binary mask for water. A higher number is less masking.
             ocean_da = mask_cleanup(
-                landcover[band_name] == water_value, [("erosion", 30)]
+                water, [("erosion", 30)]
             ).squeeze(dim="time")
 
     # Use all time and Geodata 100K data to produce the buffered coastal
@@ -764,12 +756,11 @@ def contours_preprocess(
             # replace values from `coastal_mask` with `modifications_da`
             coastal_mask = coastal_mask.where(modifications_da == 0, modifications_da)
 
-            # TODO: This needs more testing as it doesn't work yet...
-            # # Add the "add" areas to the ocean_da
-            # ocean_da = ocean_da.where(modifications_da != 1, 0)
+            # Add the "add" areas to the ocean_da
+            ocean_da = ocean_da.where(modifications_da != 1, 0)
 
-            # # Remove the "remove" areas from the ocean_da
-            # ocean_da = ocean_da.where(modifications_da != 2, 1)
+            # Remove the "remove" areas from the ocean_da
+            ocean_da = ocean_da.where(modifications_da != 2, 1)
 
     # Generate individual annual masks by selecting only water pixels that
     # are directly connected to the ocean in each yearly timestep
@@ -783,7 +774,7 @@ def contours_preprocess(
             func=ocean_masking,
             ocean_da=ocean_da,
             connectivity=1,
-            dilation=3,
+            dilation_size=3,
         )
     )
 

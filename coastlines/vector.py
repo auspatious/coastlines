@@ -364,7 +364,7 @@ def _create_mask(raster_mask, sieve_size, crs):
     return (str(raster_mask.year.item()), vector_mask)
 
 
-def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.3, sieve_size=128):
+def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.25, sieve_size=128):
     """
     Generate annual vector polygon masks containing information
     about the certainty of each extracted shoreline feature.
@@ -375,7 +375,7 @@ def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.3, sieve_siz
     Parameters:
     -----------
     yearly_ds : xarray.Dataset
-        An `xarray.Dataset` containing annual DEA Coastlines
+        An `xarray.Dataset` containing annual Coastlines
         rasters.
     obs_threshold : int, optional
         The minimum number of post-gapfilling Landsat observations
@@ -393,7 +393,7 @@ def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.3, sieve_siz
         remove the influence of tide. For more information,
         refer to Bishop-Taylor et al. 2021
         (https://doi.org/10.1016/j.rse.2021.112734).
-        Defaults to 0.3.
+        Defaults to 0.25.
     sieve_size : int, optional
         To reduce the complexity of the output masks, they are
         first cleaned using `rasterio.features.sieve` to replace
@@ -409,26 +409,45 @@ def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.3, sieve_siz
         analysis.
     """
 
-    from concurrent.futures import ProcessPoolExecutor
-    from itertools import repeat
-
     # Identify problematic pixels
     high_stdev = yearly_ds["stdev"] > stdev_threshold
     low_obs = yearly_ds["count"] < obs_threshold
 
     # Create raster mask with values of 0 for good data, values of
     # 1 for unstable data, and values of 2 for insufficient data.
-    raster_mask = high_stdev.where(~low_obs, 2).astype(np.int16)
+    # Clean this by sieving to merge small areas of pixels into
+    # their neighbours
+    raster_mask = (
+        high_stdev.where(~low_obs, 2)
+        .groupby("year")
+        .apply(lambda x: sieve(x.values.astype(np.int16), size=sieve_size))
+    )
 
-    # Process in parallel
-    with ProcessPoolExecutor() as executor:
-        # Apply func in parallel, repeating params for each iteration
-        groups = [group for (i, group) in raster_mask.groupby("year")]
-        to_iterate = (
-            groups,
-            *(repeat(i, len(groups)) for i in [sieve_size, yearly_ds.odc.crs]),
+    # Apply greyscale dilation to expand masked pixels to err on
+    # the side of overclassifying certainty issues
+    raster_mask = raster_mask.groupby("year").apply(
+        lambda x: dilation(x.values, disk(3))
+    )
+
+    # Loop through each mask and vectorise
+    vector_masks = {}
+    for i, arr in raster_mask.groupby("year"):
+        vector_mask = xr_vectorize(
+            arr,
+            crs=yearly_ds.geobox.crs,
+            transform=yearly_ds.geobox.affine,
+            attribute_col="certainty",
         )
-        vector_masks = dict(executor.map(_create_mask, *to_iterate), total=len(groups))
+
+        # Dissolve column and fix geometry
+        vector_mask = vector_mask.dissolve("certainty")
+        vector_mask["geometry"] = vector_mask.geometry.buffer(0)
+
+        # Rename classes and add to dict
+        vector_mask = vector_mask.rename(
+            {0: "good", 1: "unstable data", 2: "insufficient data"}
+        )
+        vector_masks[str(i)] = vector_mask
 
     return vector_masks
 

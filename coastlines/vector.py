@@ -435,7 +435,6 @@ def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.25, sieve_si
         vector_mask = xr_vectorize(
             arr,
             crs=yearly_ds.geobox.crs,
-            transform=yearly_ds.geobox.affine,
             attribute_col="certainty",
         )
 
@@ -510,6 +509,9 @@ def points_certainty(
     points_gdf: GeoDataFrame,
     geomorphology_gdf: Union[GeoDataFrame, None] = None,
     baseline_year: int = 2022,
+    rocky_query: str | None = None,
+    rate_of_change_threshold: int | None = 50,
+    angle_threshold: int | None = 30,
 ) -> GeoDataFrame:
     # Add certainty column to flag points with:
     # - Baseline outlier: The baseline shoreline is itself flagged as an
@@ -540,6 +542,8 @@ def points_certainty(
         "Steep boulder talus",
         "Hard rocky shore platform",
     ]
+    if rocky_query is None:
+        rocky_query = f"(INTERTD1_V in {rocky}) & (INTERTD2_V in {rocky + ['Unclassified']})"
 
     # Initialise certainty column with good values
     points_gdf["certainty"] = "good"
@@ -555,18 +559,18 @@ def points_certainty(
             rocky_shoreline_flag(
                 points_gdf,
                 geomorphology_gdf,
-                rocky_query=f"(INTERTD1_V in {rocky}) & (INTERTD2_V in {rocky + ['Unclassified']})",
+                rocky_query=rocky_query,
             ),
             "certainty",
         ] = "likely rocky coastline"
 
     # Flag extreme rates of change
     points_gdf.loc[
-        points_gdf.rate_time.abs() > 50, "certainty"
-    ] = "extreme value (> 50 m)"
+        points_gdf.rate_time.abs() > rate_of_change_threshold, "certainty"
+    ] = f"extreme value (> {rate_of_change_threshold} m)"
 
     # Flag points where change does not fall on a line
-    points_gdf.loc[points_gdf.angle_std > 30, "certainty"] = "high angular variability"
+    points_gdf.loc[points_gdf.angle_std > angle_threshold, "certainty"] = "high angular variability"
 
     # Flag shorelines with less than X valid shorelines
     valid_obs_thresh = int(points_gdf.columns.str.contains("dist_").sum() * 0.75)
@@ -1364,7 +1368,7 @@ def rocky_shoreline_flag(
         points_gdf,
         geomorphology_gdf[["rocky", "geometry"]],
         how="left",
-        max_distance=300,
+        max_distance=max_distance,
     )
 
     # Return boolean indicating whether point was rocky; take max of

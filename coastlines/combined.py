@@ -1,7 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Union
+from typing import Tuple, Union
 
 import click
 import geopandas as gpd
@@ -42,6 +43,8 @@ from coastlines.vector import (
     points_on_line,
     subpixel_contours,
     contour_certainty,
+    rocky_shoreline_flag,
+    points_certainty,
 )
 
 # TODO: work out how to pass this in...
@@ -147,9 +150,13 @@ def load_and_mask_data_with_stac(
     epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
     epsg_code = epsg_codes.most_common(1)[0][0]
 
+    bands = ["green", "swir16", "qa_pixel"]
+    if include_nir:
+        bands.append("nir08")
+
     ds = load(
         items,
-        bands=["green", "swir16", "nir08", "qa_pixel"],
+        bands=bands,
         **query,
         resampling={"qa_pixel": "nearest", "*": "average"},
         group_by="solar_day",
@@ -248,6 +255,38 @@ def filter_by_tides(
     return filtered
 
 
+def get_one_year_composite(
+    ds: xr.Dataset, year: int, include_nir: bool = False, debug: bool = False
+) -> Tuple[int, xr.Dataset]:
+    one_year = ds.sel(time=str(year))
+    three_years = ds.sel(time=slice(str(year - 1), str(year + 1)))
+
+    # Get the median and other statistics for this year
+    year_summary = one_year.mndwi.median(dim="time").to_dataset()
+    year_summary["count"] = one_year.mndwi.count(dim="time")
+    year_summary["stdev"] = one_year.mndwi.std(dim="time")
+
+    if include_nir:
+        year_summary["nir"] = one_year.nir08.median(dim="time")
+
+    # And a gapfill summary for the three years
+    year_summary["gapfill_mndwi"] = three_years.mndwi.median(dim="time")
+    year_summary["gapfill_count"] = three_years.mndwi.count(dim="time")
+    year_summary["gapfill_stdev"] = three_years.mndwi.std(dim="time")
+
+    if include_nir:
+        year_summary["gapfill_nir"] = three_years.nir08.median(dim="time")
+
+    if debug:
+        year_summary["green"] = one_year.green.median(dim="time")
+        year_summary["swir"] = one_year.swir16.median(dim="time")
+
+        year_summary["gapfill_green"] = three_years.green.median(dim="time")
+        year_summary["gapfill_swir"] = three_years.swir16.median(dim="time")
+
+    return year, year_summary
+
+
 def generate_yearly_composites(
     ds: xr.Dataset,
     start_year: int,
@@ -258,39 +297,17 @@ def generate_yearly_composites(
 ) -> xr.Dataset:
     # Store a list of output arrays and years, knowing we might lose empty years
     yearly_ds_list = []
-    years = []
+    data_year_list = []
 
     # We've found data for start_year - 1 through to end_year + 1.
     # This range includes only the years we want to process...
-    for year in range(start_year, end_year + 1):
+    years = range(start_year, end_year + 1)
+    for year in years:
         try:
-            one_year = ds.sel(time=str(year))
-            three_years = ds.sel(time=slice(str(year - 1), str(year + 1)))
-
-            # Get the median and other statistics for this year
-            year_summary = one_year.mndwi.median(dim="time").to_dataset()
-            year_summary["count"] = one_year.mndwi.count(dim="time")
-            year_summary["stdev"] = one_year.mndwi.std(dim="time")
-
-            if include_nir:
-                year_summary["nir"] = one_year.nir08.median(dim="time")
-
-            # And a gapfill summary for the three years
-            year_summary["gapfill_mndwi"] = three_years.mndwi.median(dim="time")
-            year_summary["gapfill_count"] = three_years.mndwi.count(dim="time")
-            year_summary["gapfill_stdev"] = three_years.mndwi.std(dim="time")
-
-            if include_nir:
-                year_summary["gapfill_nir"] = three_years.nir08.median(dim="time")
-
-            if debug:
-                year_summary["green"] = one_year.green.median(dim="time")
-                year_summary["swir"] = one_year.swir16.median(dim="time")
-
-                year_summary["gapfill_green"] = three_years.green.median(dim="time")
-                year_summary["gapfill_swir"] = three_years.swir16.median(dim="time")
-
-            years.append(year)
+            year, year_summary = get_one_year_composite(
+                ds, year, include_nir=include_nir, debug=debug
+            )
+            data_year_list.append(year)
             yearly_ds_list.append(year_summary)
         except KeyError:
             pass
@@ -298,22 +315,36 @@ def generate_yearly_composites(
     if len(yearly_ds_list) == 0:
         raise CoastlinesException("No data found for any years.")
 
-    time_var = xr.Variable("year", years)
+    time_var = xr.Variable("year", data_year_list)
     yearly_ds = xr.concat(yearly_ds_list, dim=time_var)
 
     if replace_with_gapfill:
         # Remove low obs pixels and replace with 3-year gapfill
-        yearly_ds["mndwi"] = yearly_ds["mndwi"].where(yearly_ds["count"] > 5, yearly_ds[f"gapfill_mndwi"])
-        yearly_ds["stdev"] = yearly_ds["stdev"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_stdev"])
+        yearly_ds["mndwi"] = yearly_ds["mndwi"].where(
+            yearly_ds["count"] > 5, yearly_ds[f"gapfill_mndwi"]
+        )
+        yearly_ds["stdev"] = yearly_ds["stdev"].where(
+            yearly_ds["count"] > 5, yearly_ds["gapfill_stdev"]
+        )
 
         if include_nir:
-            yearly_ds["nir"] = yearly_ds["nir"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_nir"])
-        
-        yearly_ds["count"] = yearly_ds["count"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_count"])
+            yearly_ds["nir"] = yearly_ds["nir"].where(
+                yearly_ds["count"] > 5, yearly_ds["gapfill_nir"]
+            )
 
+        # Update the counts with the gapfill counts
+        yearly_ds["count"] = yearly_ds["count"].where(
+            yearly_ds["count"] > 5, yearly_ds["gapfill_count"]
+        )
+
+        # If we're debugging, then return more information
         if debug:
-            yearly_ds["green"] = yearly_ds["green"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_green"])
-            yearly_ds["swir"] = yearly_ds["swir"].where(yearly_ds["count"] > 5, yearly_ds["gapfill_swir"])
+            yearly_ds["green"] = yearly_ds["green"].where(
+                yearly_ds["count"] > 5, yearly_ds["gapfill_green"]
+            )
+            yearly_ds["swir"] = yearly_ds["swir"].where(
+                yearly_ds["count"] > 5, yearly_ds["gapfill_swir"]
+            )
 
     if not debug:
         del yearly_ds["gapfill_mndwi"]
@@ -472,7 +503,7 @@ def process_coastlines(
         ]
     )
 
-    # Calculate coastal change... this is very slow when data is busy.
+    # Calculate coastal change... this is very slow when data is complex
     movement_points = calculate_regressions(movement_points)
 
     # Add count and span of valid obs, Shoreline Change Envelope (SCE),
@@ -482,8 +513,22 @@ def process_coastlines(
         lambda x: all_time_stats(x, initial_year=start_year), axis=1
     )
 
+    # Add point certainty stats
+    geomorphology_gdf = gpd.read_file(
+        "s3://files.auspatious.com/coastlines/coastal_geomorphology.zip", mask=geometry
+    )
+    points_with_certainty = points_certainty(
+        movement_points,
+        geomorphology_gdf,
+        baseline_year=baseline_year,
+        rocky_query="(Preds == 'Bedrock') and (Probs > 0.75)",
+        rate_of_change_threshold=200,
+    )
+
     # Clip to the study area
-    movement_points = movement_points.clip(geometry.to_crs(movement_points.crs))
+    points_with_certainty = points_with_certainty.clip(
+        geometry.to_crs(points_with_certainty.crs)
+    )
     contours_with_certainty = contours_with_certainty.clip(
         geometry.to_crs(contours_with_certainty.crs)
     )

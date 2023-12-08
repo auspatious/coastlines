@@ -543,7 +543,9 @@ def points_certainty(
         "Hard rocky shore platform",
     ]
     if rocky_query is None:
-        rocky_query = f"(INTERTD1_V in {rocky}) & (INTERTD2_V in {rocky + ['Unclassified']})"
+        rocky_query = (
+            f"(INTERTD1_V in {rocky}) & (INTERTD2_V in {rocky + ['Unclassified']})"
+        )
 
     # Initialise certainty column with good values
     points_gdf["certainty"] = "good"
@@ -570,7 +572,9 @@ def points_certainty(
     ] = f"extreme value (> {rate_of_change_threshold} m)"
 
     # Flag points where change does not fall on a line
-    points_gdf.loc[points_gdf.angle_std > angle_threshold, "certainty"] = "high angular variability"
+    points_gdf.loc[
+        points_gdf.angle_std > angle_threshold, "certainty"
+    ] = "high angular variability"
 
     # Flag shorelines with less than X valid shorelines
     valid_obs_thresh = int(points_gdf.columns.str.contains("dist_").sum() * 0.75)
@@ -739,13 +743,13 @@ def contours_preprocess(
             mask_with_esa_wc = False
             # TODO: Consider raising an exception here
         else:
-            landcover = load(items, geobox=combined_ds.odc.geobox, patch_url=sign_url, bands=["map"])["map"]
+            landcover = load(
+                items, geobox=combined_ds.odc.geobox, patch_url=sign_url, bands=["map"]
+            )["map"]
             water = (landcover == WATER) | (landcover == NODATA)
 
             # Create a binary mask for water. A higher number is less masking.
-            ocean_da = mask_cleanup(
-                water, [("erosion", 30)]
-            ).squeeze(dim="time")
+            ocean_da = mask_cleanup(water, [("erosion", 30)]).squeeze(dim="time")
 
     # Use all time and Geodata 100K data to produce the buffered coastal
     # study area. The output has values of 0 representing non-coastal

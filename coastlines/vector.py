@@ -195,7 +195,7 @@ def ocean_masking(ds, ocean_da, connectivity=1, dilation_size=None):
         pixels as True.
     """
     # Update `ocean_da` to mask out any pixels that are land in `ds` too
-    ocean_da = ocean_da | (ds != 1)
+    ocean_da = ocean_da & (ds != 1)
 
     # First, break all time array into unique, discrete regions/blobs.
     # Fill NaN with 1 so it is treated as a background pixel

@@ -1366,7 +1366,7 @@ def rocky_shoreline_flag(
     # Join classified geomorphology data to points if within max dist
     joined = gpd.sjoin_nearest(
         points_gdf,
-        geomorphology_gdf[["rocky", "geometry"]],
+        geomorphology_gdf[["rocky", "geometry"]].to_crs(points_gdf.crs),
         how="left",
         max_distance=max_distance,
     )

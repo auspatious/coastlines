@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 from collections import Counter
 from pathlib import Path
@@ -43,7 +42,6 @@ from coastlines.vector import (
     points_on_line,
     subpixel_contours,
     contour_certainty,
-    rocky_shoreline_flag,
     points_certainty,
 )
 
@@ -180,7 +178,8 @@ def load_and_mask_data_with_stac(
     # Get cloud mask
     cloud_mask = ds["qa_pixel"].astype(int) & bitmask != 0
     # Expand and contract the mask to clean it up
-    dilated_cloud_mask = mask_cleanup(cloud_mask, [("opening", 10), ("dilation", 5)])
+    # DE Africa uses 10 and 5, which Alex doesn't like!
+    dilated_cloud_mask = mask_cleanup(cloud_mask, [("opening", 5), ("dilation", 6)])
 
     # Convert to float and scale data to 0-1
     ds["green"] = to_f32(ds["green"], scale=0.0000275, offset=-0.2)
@@ -197,7 +196,7 @@ def load_and_mask_data_with_stac(
     # Create MNDWI
     ds["mndwi"] = (ds["green"] - ds["swir16"]) / (ds["green"] + ds["swir16"])
 
-    # Mask the data, setting nodata to `nan`
+    # Mask the data, setting the nodata value to `nan`
     final_mask = nodata_mask | dilated_cloud_mask | invalid_ard_values
     ds = ds.where(~final_mask)
 
@@ -458,7 +457,7 @@ def process_coastlines(
 
     # Mask dataset to focus on coastal zone only
     masked_ds, certainty_masks = contours_preprocess(
-        combined_data=combined_data,
+        combined_ds=combined_data,
         water_index="mndwi",
         index_threshold=index_threshold,
         mask_with_esa_wc=True,

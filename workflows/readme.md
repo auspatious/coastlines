@@ -36,9 +36,9 @@ docker-compose run coastlines \
         --config-path=configs/vietnam_coastlines_config.yaml \
         --study-area="9,19" \
         --tide-data-location="/tmp/tide_models" \
-        --output-version="0.0.0" \
+        --output-version="0.5.0a1" \
         --output-location="data" \
-        --start-year="2020" \
+        --start-year="1981" \
         --end-year="2022" \
         --baseline-year="2021" \
         --aws-request-payer \

@@ -13,7 +13,12 @@ from odc.stac import load, configure_s3_access
 from pystac_client import Client
 from s3path import S3Path
 
-from coastlines.raster import tide_cutoffs
+from dea_tools.spatial import hillshade
+from dea_tools.datahandling import parallel_apply
+
+from pystac import ItemCollection
+
+from coastlines.raster import tide_cutoffs, terrain_shadow_masking
 from coastlines.utils import (
     CoastlinesException,
     click_aws_request_payer,
@@ -101,6 +106,7 @@ def load_and_mask_data_with_stac(
     query: dict,
     upper_scene_limit: int = 3000,
     lower_scene_limit: int = 200,
+    mask_terrain_shadow: bool = True,
     include_nir: bool = False,
     debug: bool = False,
 ) -> xr.Dataset:
@@ -200,6 +206,10 @@ def load_and_mask_data_with_stac(
     final_mask = nodata_mask | dilated_cloud_mask | invalid_ard_values
     ds = ds.where(~final_mask)
 
+    if mask_terrain_shadow:
+        # Mask out terrain shadow
+        print("Not yet implemented")
+
     # Delete unneeded data
     if not debug:
         del ds["green"]
@@ -207,6 +217,56 @@ def load_and_mask_data_with_stac(
         del ds["qa_pixel"]
 
     return ds, items
+
+
+def terrain_shadow(
+    ds: xr.Dataset,
+    dem: xr.Dataset,
+    items_by_time: dict,
+    threshold: float = 0.5,
+    radius: int = 1,
+):
+    item = items_by_time[ds.time.values.astype(str).split(".")[0]]
+    elevation = item.properties["view:sun_elevation"]
+    azimuth = item.properties["view:sun_azimuth"]
+
+    hs = hillshade(dem, elevation, azimuth)
+    hs = hs < threshold
+    hs_da = xr.DataArray(hs, dims=["y", "x"])
+    hs_da = mask_cleanup(hs_da, [("opening", radius), ("dilation", radius)])
+
+    return hs_da
+
+
+def mask_pixels_by_hillshadow(
+    ds: xr.Dataset,
+    items: ItemCollection,
+    stac_catalog: str = "https://planetarycomputer.microsoft.com/api/stac/v1/",
+    stac_collection="cop-dem-glo-30",
+    debug: bool = False,
+) -> xr.Dataset:
+    client = Client.open(stac_catalog)
+    bbox = list(ds.geobox.extent.to_crs("epsg:4326").boundingbox)
+    items_by_time = {
+        item.datetime.strftime("%Y-%m-%dT%H:%M:%S"): item for item in items
+    }
+
+    dem_items = list(client.search(collections=[stac_collection], bbox=bbox).items())
+    dem = load(dem_items, like=ds, measurements=["data"])
+
+    hillshadow = parallel_apply(
+        ds,
+        "time",
+        terrain_shadow,
+        dem=dem.squeeze().data.values,
+        items_by_time=items_by_time,
+    )
+
+    ds = ds.where(~hillshadow)
+    if debug:
+        return ds, hillshadow
+
+    return ds
 
 
 def mask_pixels_by_tide(
@@ -403,6 +463,7 @@ def process_coastlines(
     buffer: float,
     log: callable,
     load_early: bool = True,
+    mask_with_hillshade: bool = False,
 ):
     # Study site geometry and config parsing
     geometry = get_study_site_geometry(config["Input files"]["grid_path"], study_area)
@@ -438,6 +499,10 @@ def process_coastlines(
 
     log.info("Running per-pixel tide masking at high resolution")
     data = mask_pixels_by_tide(data, tide_data_location, tide_centre)
+
+    if mask_with_hillshade:
+        log.info("Running per-pixel terrain shadow masking")
+        data = mask_pixels_by_hillshadow(data, items)
 
     # Loading combined yearly composites
     log.info("Generating yearly composites")
@@ -535,7 +600,7 @@ def process_coastlines(
     # Write results
     log.info(f"Writing to files to {output_location}")
     outputs = export_results(
-        movement_points,
+        points_with_certainty,
         contours_with_certainty,
         output_version,
         output_location,
@@ -565,6 +630,7 @@ def process_coastlines(
 @click_aws_request_payer
 @click_overwrite
 @click.option("--load-early/--no-load-early", default=True)
+@click.option("--mask-with-hillshadow/--no-mask-with-hillshadow", default=False)
 def cli(
     config_path,
     study_area,

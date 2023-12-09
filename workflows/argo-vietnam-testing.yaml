@@ -23,11 +23,11 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.4.0"
+        value: "0.5.0"
       - name: result-version
-        value: "0.4.0"
+        value: "0.5.0"
       - name: tiles-subset
-        value: '[\"18,26\", \"14,47\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
+        value: '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
         value: configs/vietnam_coastlines_config.yaml
       - name: start-year
@@ -40,8 +40,6 @@ spec:
         value: s3://easi-asia-dc-data-projects/coastlines/
       - name: overwrite
         value: "--no-overwrite"
-      - name: safe-to-retry
-        value: "true"
   templates:
     - name: coastlines-dag
       dag:
@@ -77,8 +75,6 @@ spec:
               value: "{{workflow.parameters.baseline-year}}"
             - name: overwrite
               value: "{{workflow.parameters.overwrite}}"
-            - name: safe-to-retry
-              value: "{{workflow.parameters.safe-to-retry}}"
 
         - name: merge
           depends: "process-id.AnySucceeded"
@@ -119,7 +115,6 @@ spec:
           - name: start-year
           - name: end-year
           - name: baseline-year
-          - name: safe-to-retry
           - name: overwrite
       container:
         image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}

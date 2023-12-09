@@ -8,17 +8,15 @@ import geopandas as gpd
 import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
+from dea_tools.datahandling import parallel_apply
+from dea_tools.spatial import hillshade
 from odc.algo import mask_cleanup, to_f32
-from odc.stac import load, configure_s3_access
+from odc.stac import configure_s3_access, load
+from pystac import ItemCollection
 from pystac_client import Client
 from s3path import S3Path
 
-from dea_tools.spatial import hillshade
-from dea_tools.datahandling import parallel_apply
-
-from pystac import ItemCollection
-
-from coastlines.raster import tide_cutoffs, terrain_shadow_masking
+from coastlines.raster import tide_cutoffs
 from coastlines.utils import (
     CoastlinesException,
     click_aws_request_payer,
@@ -43,11 +41,11 @@ from coastlines.vector import (
     all_time_stats,
     annual_movements,
     calculate_regressions,
+    contour_certainty,
     contours_preprocess,
+    points_certainty,
     points_on_line,
     subpixel_contours,
-    contour_certainty,
-    points_certainty,
 )
 
 # TODO: work out how to pass this in...
@@ -380,7 +378,7 @@ def generate_yearly_composites(
     if replace_with_gapfill:
         # Remove low obs pixels and replace with 3-year gapfill
         yearly_ds["mndwi"] = yearly_ds["mndwi"].where(
-            yearly_ds["count"] > 5, yearly_ds[f"gapfill_mndwi"]
+            yearly_ds["count"] > 5, yearly_ds["gapfill_mndwi"]
         )
         yearly_ds["stdev"] = yearly_ds["stdev"].where(
             yearly_ds["count"] > 5, yearly_ds["gapfill_stdev"]
@@ -647,6 +645,7 @@ def cli(
     aws_request_payer,
     overwrite,
     load_early,
+    mask_with_hillshadow,
 ):
     log = configure_logging("Coastlines")
     log.info(

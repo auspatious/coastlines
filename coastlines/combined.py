@@ -577,7 +577,8 @@ def process_coastlines(
 
     # Add point certainty stats
     geomorphology_gdf = gpd.read_file(
-        "s3://files.auspatious.com/coastlines/coastal_geomorphology.zip", mask=geometry
+        "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip",
+        mask=geometry,
     )
     points_with_certainty = points_certainty(
         movement_points,

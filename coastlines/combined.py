@@ -576,8 +576,12 @@ def process_coastlines(
     )
 
     # Add point certainty stats
+    geomorphology_url = config["Input files"].get("geomorphology_path")
+    if geomorphology_url is None:
+        log.warning("Using empty geomorphology dataset")
+        geomorphology_url = "data/raw/empty_modifications.geojson"
     geomorphology_gdf = gpd.read_file(
-        "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip",
+        geomorphology_url,
         mask=geometry,
     )
     points_with_certainty = points_certainty(

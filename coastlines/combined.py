@@ -419,6 +419,7 @@ def extract_points_with_movements(
     contours: gpd.GeoDataFrame,
     baseline_year: int,
     start_year: int,
+    end_year: int,
 ) -> gpd.GeoDataFrame:
     try:
         points = points_on_line(contours, baseline_year, distance=30)
@@ -510,8 +511,12 @@ def process_coastlines(
     geometry = get_study_site_geometry(config["Input files"]["grid_path"], study_area)
     log.info(f"Loaded geometry for study area {study_area}")
 
+    # Config shenanigans
     bbox = list(geometry.buffer(buffer).bounds.values[0])
     log.info(f"Using bounding box: {bbox}")
+
+    # Water index is hard coded for now...
+    water_index = "mndwi"
 
     query = {
         "bbox": bbox,
@@ -574,7 +579,7 @@ def process_coastlines(
     # Mask dataset to focus on coastal zone only
     masked_data, certainty_masks = contours_preprocess(
         combined_ds=combined_data,
-        water_index="mndwi",
+        water_index=water_index,
         index_threshold=index_threshold,
         mask_with_esa_wc=True,
         buffer_pixels=33,
@@ -595,7 +600,7 @@ def process_coastlines(
 
     log.info("Extracting points and calculating annual movements and statistics")
     points = extract_points_with_movements(
-        masked_data, contours_with_certainty, baseline_year, start_year
+        masked_data.to_dataset(name=water_index), contours_with_certainty, baseline_year, start_year, end_year
     )
 
     log.info("Calculating certainty statistics for points")

@@ -600,7 +600,11 @@ def process_coastlines(
 
     log.info("Extracting points and calculating annual movements and statistics")
     points = extract_points_with_movements(
-        masked_data.to_dataset(name=water_index), contours_with_certainty, baseline_year, start_year, end_year
+        masked_data.to_dataset(name=water_index),
+        contours_with_certainty,
+        baseline_year,
+        start_year,
+        end_year,
     )
 
     log.info("Calculating certainty statistics for points")

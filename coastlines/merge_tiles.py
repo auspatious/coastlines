@@ -41,11 +41,16 @@ def find_points_contours(files: Iterable) -> list[list[S3Path], list[S3Path]]:
     return points_files, contours_files
 
 
-def load_parquet_files(files: list[S3Path], output_crs: str):
+def load_parquet_files(files: list[S3Path] | list[Path], output_crs: str):
     data_frames = []
+    is_s3 = False
+    if type(files[0]) == S3Path:
+        is_s3 = True
     for file in files:
-        file_s3 = f"s3:/{file}"
-        df = gpd.read_parquet(file_s3).to_crs(output_crs)
+        file_string = str(file)
+        if is_s3:
+            file_string = f"s3:/{file}"
+        df = gpd.read_parquet(file_string).to_crs(output_crs)
         data_frames.append(df)
 
     return gpd.GeoDataFrame(pd.concat(data_frames), geometry="geometry")
@@ -114,23 +119,22 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
     written.append(output_shorelines)
     written.append(output_rates_of_change)
 
-    # hotspots needs more work
-    if hotspots is not None:
-        for i, hotspot in enumerate(hotspots):
-            output_hotspot = get_output_path(
-                output_location,
-                output_version,
-                f"hotspots_{output_version}_zoom_{i}",
-                "parquet",
-            )
-            if write_to_s3:
-                output_hotspot = f"s3:/{output_hotspot}"
-            else:
-                if output_hotspot.exists():
-                    output_hotspot.unlink()
-            hotspot.to_parquet(output_hotspot)
+    # Hotspot writing
+    for i, hotspot in enumerate(hotspots):
+        output_hotspot = get_output_path(
+            output_location,
+            output_version,
+            f"hotspots_{output_version}_zoom_{i + 1}",
+            "parquet",
+        )
+        if write_to_s3:
+            output_hotspot = f"s3:/{output_hotspot}"
+        else:
+            if output_hotspot.exists():
+                output_hotspot.unlink()
+        hotspot.to_parquet(output_hotspot)
 
-            written.append(output_hotspot)
+        written.append(output_hotspot)
 
     # Write geopackage
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -141,18 +145,16 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
         shorelines.to_file(temp_geopackage, layer="shorelines_annual", driver="GPKG")
         rates_of_change.to_file(temp_geopackage, layer="rates_of_change", driver="GPKG")
 
-        # Skipping hotspots for now...
-        if hotspots is not None:
-            for i, hotspot in enumerate(hotspots):
-                hotspot.to_file(
-                    temp_geopackage, layer=f"hotspots_zoom_{i}", driver="GPKG"
-                )
+        for i, hotspot in enumerate(hotspots):
+            hotspot.to_file(
+                temp_geopackage, layer=f"hotspots_zoom_{i + 1}", driver="GPKG"
+            )
 
         # Handy built-in styles
         styles = gpd.read_file(STYLES_FILE)
         styles.to_file(temp_geopackage, layer="layer_styles", driver="GPKG")
 
-        # Shift the tempfile to a final location
+        # Shift the tempfile to its final destination
         if write_to_s3:
             s3 = boto3.client("s3")
             s3.upload_file(
@@ -192,11 +194,8 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
     rates_of_change = load_parquet_files(points_files, output_crs)
     shorelines = load_parquet_files(contours_files, output_crs)
 
-    rates_of_change, shorelines = munge_data(rates_of_change, shorelines)
-
-    hotspots = None
-    # log.info("Generating hotspots")
-    # hotspots = generate_hotspots(shorelines, rates_of_change, [10000, 5000, 1000], baseline_year)
+    log.info("Generating hotspots")
+    hotspots = generate_hotspots(shorelines, rates_of_change, [10000, 5000, 1000], baseline_year)
 
     log.info("Writing files")
     written = write_files(

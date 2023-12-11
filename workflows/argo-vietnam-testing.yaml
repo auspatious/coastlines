@@ -6,7 +6,7 @@ metadata:
 spec:
   serviceAccountName: cenv-coastlines-team-sa-argo
   entrypoint: coastlines-dag
-  parallelism: 250
+  parallelism: 20
   podGC:
     strategy: OnPodSuccess
     deleteDelayDuration: 120s
@@ -23,9 +23,9 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.5.0"
+        value: "0.5.0-8-gd967d30"
       - name: result-version
-        value: "0.5.0"
+        value: "0.5.1"
       - name: tiles-subset
         value: '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config

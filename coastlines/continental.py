@@ -79,7 +79,7 @@ def generate_hotspots(shorelines_gdf, ratesofchange_gdf, hotspots_radii, baselin
 
         # Aggregate/summarise values by taking median of all points
         # within each buffered polygon
-        hotspot_values = hotspot_grouped.median().round(2)
+        hotspot_values = hotspot_grouped.median(numeric_only=True).round(2)
 
         # Extract year from distance columns (remove "dist_")
         x_years = hotspot_values.columns.str.replace("dist_", "").astype(int)

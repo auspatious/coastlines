@@ -414,6 +414,49 @@ def generate_yearly_composites(
     return yearly_ds
 
 
+def extract_points_with_movements(
+    masked_data: xr.Dataset,
+    contours: gpd.GeoDataFrame,
+    baseline_year: int,
+    start_year: int,
+) -> gpd.GeoDataFrame:
+    try:
+        points = points_on_line(contours, baseline_year, distance=30)
+    except KeyError:
+        raise CoastlinesException("No data found for baseline year.")
+
+    points = annual_movements(
+        points,
+        contours,
+        masked_data,
+        str(baseline_year),
+        "mndwi",
+        max_valid_dist=1200,
+    )
+
+    # Reindex to add any missing annual columns to the dataset
+    points = points.reindex(
+        columns=[
+            "geometry",
+            *[f"dist_{i}" for i in range(start_year, end_year + 1)],
+            "angle_mean",
+            "angle_std",
+        ]
+    )
+
+    # Calculate coastal change... this is very slow when data is complex
+    points = calculate_regressions(points)
+
+    # Add count and span of valid obs, Shoreline Change Envelope (SCE),
+    # Net Shoreline Movement (NSM) and Max/Min years
+    stats_list = ["valid_obs", "valid_span", "sce", "nsm", "max_year", "min_year"]
+    points[stats_list] = points.apply(
+        lambda x: all_time_stats(x, initial_year=start_year), axis=1
+    )
+
+    return points
+
+
 def export_results(
     points_gdf: gpd.GeoDataFrame,
     contours_gdf: gpd.GeoDataFrame,
@@ -512,14 +555,24 @@ def process_coastlines(
 
     # TODO: Maybe write the combined_data to a Zarr file somewhere
 
-    # Coastal mask modifications
-    log.info("Loading vectors and pre-processing contours")
+    # Load the modifications layer to add/remove areas from the analysis
+    log.info("Loading vectors")
     modifications_gdf = gpd.read_file(
         config["Input files"]["modifications_path"], bbox=bbox
     ).to_crs(str(combined_data.odc.crs))
 
+    geomorphology_url = config["Input files"].get("geomorphology_path")
+    if geomorphology_url is None:
+        log.warning("Using empty geomorphology dataset")
+        geomorphology_url = "data/raw/empty_modifications.geojson"
+    geomorphology_gdf = gpd.read_file(
+        geomorphology_url,
+        mask=geometry,
+    )
+
+    log.info("Preprocessing contours")
     # Mask dataset to focus on coastal zone only
-    masked_ds, certainty_masks = contours_preprocess(
+    masked_data, certainty_masks = contours_preprocess(
         combined_ds=combined_data,
         water_index="mndwi",
         index_threshold=index_threshold,
@@ -531,61 +584,21 @@ def process_coastlines(
     # Extract shorelines
     log.info("Extracting shorelines")
     contours = subpixel_contours(
-        da=masked_ds,
+        da=masked_data,
         z_values=index_threshold,
         min_vertices=10,
         dim="year",
     ).set_index("year")
 
-    # Add certainty stats to the contours
+    log.info("Adding certainty statistics to contours")
     contours_with_certainty = contour_certainty(contours, certainty_masks)
 
-    log.info("Calculating annual movements and statistics")
-    try:
-        points = points_on_line(contours, baseline_year, distance=30)
-    except KeyError:
-        raise CoastlinesException("No data found for baseline year.")
+    log.info("Extracting points and calculating annual movements and statistics")
+    points = extract_points_with_movements(masked_data, contours_with_certainty, baseline_year, start_year)
 
-    movement_points = annual_movements(
-        points,
-        contours_with_certainty,
-        combined_data,
-        str(baseline_year),
-        "mndwi",
-        max_valid_dist=1200,
-    )
-
-    # Reindex to add any missing annual columns to the dataset
-    movement_points = movement_points.reindex(
-        columns=[
-            "geometry",
-            *[f"dist_{i}" for i in range(start_year, end_year + 1)],
-            "angle_mean",
-            "angle_std",
-        ]
-    )
-
-    # Calculate coastal change... this is very slow when data is complex
-    movement_points = calculate_regressions(movement_points)
-
-    # Add count and span of valid obs, Shoreline Change Envelope (SCE),
-    # Net Shoreline Movement (NSM) and Max/Min years
-    stats_list = ["valid_obs", "valid_span", "sce", "nsm", "max_year", "min_year"]
-    movement_points[stats_list] = movement_points.apply(
-        lambda x: all_time_stats(x, initial_year=start_year), axis=1
-    )
-
-    # Add point certainty stats
-    geomorphology_url = config["Input files"].get("geomorphology_path")
-    if geomorphology_url is None:
-        log.warning("Using empty geomorphology dataset")
-        geomorphology_url = "data/raw/empty_modifications.geojson"
-    geomorphology_gdf = gpd.read_file(
-        geomorphology_url,
-        mask=geometry,
-    )
+    log.info("Calculating certainty statistics for points")
     points_with_certainty = points_certainty(
-        movement_points,
+        points,
         geomorphology_gdf,
         baseline_year=baseline_year,
         rocky_query="(Preds == 'Bedrock') and (Probs > 0.75)",
@@ -633,7 +646,7 @@ def process_coastlines(
 @click_aws_request_payer
 @click_overwrite
 @click.option("--load-early/--no-load-early", default=True)
-@click.option("--mask-with-hillshadow/--no-mask-with-hillshadow", default=False)
+@click.option("--mask-with-hillshade/--no-mask-with-hillshade", default=False)
 def cli(
     config_path,
     study_area,
@@ -650,7 +663,7 @@ def cli(
     aws_request_payer,
     overwrite,
     load_early,
-    mask_with_hillshadow,
+    mask_with_hillshade,
 ):
     log = configure_logging("Coastlines")
     log.info(
@@ -715,6 +728,7 @@ def cli(
             buffer,
             log,
             load_early=load_early,
+            mask_with_hillshade=mask_with_hillshade,
         )
     except CoastlinesException as e:
         log.exception(f"Study area {study_area}: Failed to run process with error {e}")

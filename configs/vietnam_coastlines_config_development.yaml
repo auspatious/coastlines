@@ -1,6 +1,7 @@
 Input files:
     grid_path: data/raw/vietnam_tiles.geojson
     modifications_path: data/raw/vietnam_modifications.geojson
+    geomorphology_path: https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip
 STAC config:
     stac_api_url: "https://landsatlook.usgs.gov/stac-server"
     stac_collections: 

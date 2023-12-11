@@ -594,7 +594,9 @@ def process_coastlines(
     contours_with_certainty = contour_certainty(contours, certainty_masks)
 
     log.info("Extracting points and calculating annual movements and statistics")
-    points = extract_points_with_movements(masked_data, contours_with_certainty, baseline_year, start_year)
+    points = extract_points_with_movements(
+        masked_data, contours_with_certainty, baseline_year, start_year
+    )
 
     log.info("Calculating certainty statistics for points")
     points_with_certainty = points_certainty(

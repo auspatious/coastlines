@@ -195,7 +195,9 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
     shorelines = load_parquet_files(contours_files, output_crs)
 
     log.info("Generating hotspots")
-    hotspots = generate_hotspots(shorelines, rates_of_change, [10000, 5000, 1000], baseline_year)
+    hotspots = generate_hotspots(
+        shorelines, rates_of_change, [10000, 5000, 1000], baseline_year
+    )
 
     log.info("Writing files")
     written = write_files(

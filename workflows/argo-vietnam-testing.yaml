@@ -6,7 +6,7 @@ metadata:
 spec:
   serviceAccountName: cenv-coastlines-team-sa-argo
   entrypoint: coastlines-dag
-  parallelism: 20
+  parallelism: 40
   podGC:
     strategy: OnPodSuccess
     deleteDelayDuration: 120s
@@ -23,11 +23,11 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.5.0-8-gd967d30"
+        value: "0.5.0-11-g1e89661"
       - name: result-version
-        value: "0.5.1"
+        value: "0.5.1hs"
       - name: tiles-subset
-        value: '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
+        value: '[\"14,46\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
         value: configs/vietnam_coastlines_config.yaml
       - name: start-year
@@ -149,6 +149,7 @@ spec:
               --baseline-year {{inputs.parameters.baseline-year}} \
               --aws-request-payer \
               --no-aws-unsigned \
+              --mask-with-hillshade \
               {{inputs.parameters.overwrite}}
 
 

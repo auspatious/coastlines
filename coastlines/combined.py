@@ -240,7 +240,7 @@ def mask_pixels_by_hillshadow(
     ds: xr.Dataset,
     items: ItemCollection,
     stac_catalog: str = "https://planetarycomputer.microsoft.com/api/stac/v1/",
-    stac_collection="cop-dem-glo-30",
+    stac_collection: str = "cop-dem-glo-30",
     debug: bool = False,
 ) -> xr.Dataset:
     client = Client.open(stac_catalog)
@@ -250,19 +250,24 @@ def mask_pixels_by_hillshadow(
     }
 
     dem_items = list(client.search(collections=[stac_collection], bbox=bbox).items())
-    dem = load(dem_items, like=ds, measurements=["data"])
 
-    hillshadow = parallel_apply(
-        ds,
-        "time",
-        terrain_shadow,
-        dem=dem.squeeze().data.values,
-        items_by_time=items_by_time,
-    )
+    if len(dem_items) == 0:
+        raise CoastlinesException("No DEM items found.")
+    else:
+        dem = load(dem_items, like=ds, measurements=["data"])
 
-    ds = ds.where(~hillshadow)
-    if debug:
-        return ds, hillshadow
+        # TODO: Optimise this to work faster/better/simpler
+        hillshadow = parallel_apply(
+            ds,
+            "time",
+            terrain_shadow,
+            dem=dem.squeeze().data.values,
+            items_by_time=items_by_time,
+        )
+
+        ds = ds.where(~hillshadow)
+        if debug:
+            return ds, hillshadow
 
     return ds
 
@@ -432,7 +437,7 @@ def extract_points_with_movements(
         masked_data,
         str(baseline_year),
         "mndwi",
-        max_valid_dist=1200,
+        max_valid_dist=2000,  # Increased from 1,200
     )
 
     # Reindex to add any missing annual columns to the dataset
@@ -548,7 +553,10 @@ def process_coastlines(
 
     if mask_with_hillshade:
         log.info("Running per-pixel terrain shadow masking")
-        data = mask_pixels_by_hillshadow(data, items)
+        try:
+            data = mask_pixels_by_hillshadow(data, items)
+        except CoastlinesException:
+            log.warning("No DEM found for this area. Skipping hillshadow mask")
 
     # Loading combined yearly composites
     log.info("Generating yearly composites")

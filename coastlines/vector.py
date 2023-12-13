@@ -15,25 +15,26 @@ import glob
 import os
 import sys
 import warnings
-
 from typing import Union
-from odc.algo import mask_cleanup
-from odc.stac import load
-from planetary_computer import sign_url
-from pystac_client import Client
+
 import click
 import datacube  # noqa
 import geohash as gh
 import geopandas as gpd
 import numpy as np
 import odc.algo  # noqa
-from odc.geo.xr import xr_zeros
 import pandas as pd
 import pyproj
 import rioxarray  # noqa: F401
 import xarray as xr
 from datacube.utils.aws import configure_s3_access
 from dea_tools.spatial import subpixel_contours, xr_rasterize, xr_vectorize
+from geopandas import GeoDataFrame
+from odc.algo import mask_cleanup
+from odc.geo.xr import xr_zeros
+from odc.stac import load
+from planetary_computer import sign_url
+from pystac_client import Client
 from rasterio.features import sieve
 from scipy.stats import circmean, circstd, linregress
 from shapely.ops import nearest_points
@@ -47,14 +48,13 @@ from skimage.morphology import (
 )
 from sqlalchemy.exc import OperationalError  # noqa
 
-from geopandas import GeoDataFrame
-
 from coastlines.utils import (
+    CoastlinesException,
     click_baseline_year,
+    click_config_path,
     click_end_year,
     click_index_threshold,
     click_start_year,
-    click_config_path,
     configure_logging,
     load_config,
 )
@@ -493,7 +493,12 @@ def contour_certainty(contours_gdf, certainty_masks):
         out_list.append(contour_gdf)
 
     # Combine into a single dataframe
-    contours_gdf = pd.concat(out_list).sort_index()
+    try:
+        contours_gdf = pd.concat(out_list).sort_index()
+    except ValueError as e:
+        raise CoastlinesException(
+            "Failed to find any shorelines to concatenate when attributing certainty"
+        ) from e
 
     # Finally, set all 1991 and 1992 coastlines north of -23 degrees
     # latitude to 'uncertain' due to Mt Pinatubo aerosol issue

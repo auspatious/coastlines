@@ -52,7 +52,7 @@ def wms_fields(gdf):
     )
 
 
-def generate_hotspots(shorelines_gdf, ratesofchange_gdf, hotspots_radii, baseline_year):
+def generate_hotspots(shorelines_gdf, ratesofchange_gdf, hotspots_radii, baseline_year, add_wms_fields=False):
     hotspots = []
 
     for radius in hotspots_radii:
@@ -124,6 +124,10 @@ def generate_hotspots(shorelines_gdf, ratesofchange_gdf, hotspots_radii, baselin
             .rename("uid")
         )
         hotspots_gdf = hotspots_gdf.set_index(uids)
+
+        if add_wms_fields:
+            # Add the WMS fields to hotspots
+            hotspots_gdf = pd.concat([hotspots_gdf, wms_fields(hotspots_gdf)], axis=1)
 
         hotspots.append(hotspots_gdf)
 

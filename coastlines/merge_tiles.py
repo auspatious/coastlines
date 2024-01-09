@@ -8,7 +8,7 @@ from s3path import S3Path
 from typing import Iterable
 import geopandas as gpd
 import pandas as pd
-from coastlines.continental import generate_hotspots  # noqa
+from coastlines.continental import generate_hotspots, wms_fields
 import tempfile
 from coastlines.utils import STYLES_FILE, configure_logging
 from pathlib import Path
@@ -196,7 +196,7 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
 
     log.info("Generating hotspots")
     hotspots = generate_hotspots(
-        shorelines, rates_of_change, [10000, 5000, 1000], baseline_year
+        shorelines, rates_of_change, [10000, 5000, 1000], baseline_year, add_wms_fields=True
     )
 
     log.info("Writing files")

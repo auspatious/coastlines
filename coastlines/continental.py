@@ -52,7 +52,13 @@ def wms_fields(gdf):
     )
 
 
-def generate_hotspots(shorelines_gdf, ratesofchange_gdf, hotspots_radii, baseline_year, add_wms_fields=False):
+def generate_hotspots(
+    shorelines_gdf,
+    ratesofchange_gdf,
+    hotspots_radii,
+    baseline_year,
+    add_wms_fields=False,
+):
     hotspots = []
 
     for radius in hotspots_radii:

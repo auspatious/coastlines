@@ -8,7 +8,9 @@ import geopandas as gpd
 import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
-from dea_tools.datahandling import parallel_apply
+
+# from dea_tools.datahandling import parallel_apply  # Needs a PR merged
+from coastlines.utils import parallel_apply
 from dea_tools.spatial import hillshade
 from odc.algo import mask_cleanup, to_f32
 from odc.stac import configure_s3_access, load
@@ -256,15 +258,16 @@ def mask_pixels_by_hillshadow(
     else:
         dem = load(dem_items, like=ds, measurements=["data"])
 
-        # TODO: Optimise this to work faster/better/simpler
         hillshadow = parallel_apply(
             ds,
             "time",
             terrain_shadow,
+            use_threads=True,
             dem=dem.squeeze().data.values,
             items_by_time=items_by_time,
         )
 
+        # Filter out the hill shaded pixels
         ds = ds.where(~hillshadow)
         if debug:
             return ds, hillshadow

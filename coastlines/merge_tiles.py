@@ -196,7 +196,11 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
 
     log.info("Generating hotspots")
     hotspots = generate_hotspots(
-        shorelines, rates_of_change, [10000, 5000, 1000], baseline_year, add_wms_fields=True
+        shorelines,
+        rates_of_change,
+        [10000, 5000, 1000],
+        baseline_year,
+        add_wms_fields=True,
     )
 
     log.info("Writing files")

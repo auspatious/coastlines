@@ -67,6 +67,36 @@ def get_study_site_geometry(grid_path: str, study_area: str) -> gpd.GeoDataFrame
     return gridcell_gdf
 
 
+def parallel_apply(ds, dim, func, use_threads=False, *args, **kwargs):
+    """
+    Temporarily copied until this PR is merged:
+    https://github.com/GeoscienceAustralia/dea-notebooks/pull/1171
+    """
+
+    import xarray as xr
+    from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+    from tqdm import tqdm
+    from itertools import repeat
+    from functools import partial
+
+    if use_threads:
+        Executor = ThreadPoolExecutor
+    else:
+        Executor = ProcessPoolExecutor
+
+    with Executor() as executor:
+        # Update func to add kwargs
+        func = partial(func, **kwargs)
+
+        # Apply func in parallel
+        groups = [group for (i, group) in ds.groupby(dim)]
+        to_iterate = (groups, *(repeat(i, len(groups)) for i in args))
+        out_list = list(tqdm(executor.map(func, *to_iterate), total=len(groups)))
+
+    # Combine to match the original dataset
+    return xr.concat(out_list, dim=ds[dim])
+
+
 click_config_path = click.option(
     "--config-path",
     type=str,

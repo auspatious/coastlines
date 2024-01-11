@@ -70,6 +70,11 @@ def http_to_s3_url(http_url):
     return s3_url
 
 
+BAD_IDS = [
+    "LC09_L2SP_124054_20220621_20220624_02_T1_SR"  # Reported to USGS on 11/01/23
+]
+
+
 def sanitise_tile_id(tile_id: str, zero_pad: bool = True) -> str:
     tile_parts = tile_id.split(",")
     if len(tile_parts) == 2:
@@ -106,7 +111,6 @@ def load_and_mask_data_with_stac(
     query: dict,
     upper_scene_limit: int = 3000,
     lower_scene_limit: int = 200,
-    mask_terrain_shadow: bool = True,
     include_nir: bool = False,
     debug: bool = False,
 ) -> xr.Dataset:
@@ -150,6 +154,9 @@ def load_and_mask_data_with_stac(
         )
 
     items = list(search.get_items())
+
+    # Hack to remove some bad items
+    items = [i for i in items if i.id not in BAD_IDS]
 
     epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
     epsg_code = epsg_codes.most_common(1)[0][0]
@@ -205,10 +212,6 @@ def load_and_mask_data_with_stac(
     # Mask the data, setting the nodata value to `nan`
     final_mask = nodata_mask | dilated_cloud_mask | invalid_ard_values
     ds = ds.where(~final_mask)
-
-    if mask_terrain_shadow:
-        # Mask out terrain shadow
-        print("Not yet implemented")
 
     # Delete unneeded data
     if not debug:

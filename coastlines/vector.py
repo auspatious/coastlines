@@ -751,10 +751,11 @@ def contours_preprocess(
             landcover = load(
                 items, geobox=combined_ds.odc.geobox, patch_url=sign_url, bands=["map"]
             )["map"]
-            water = (landcover == WATER) | (landcover == NODATA)
+            water = landcover.isin([WATER, NODATA]).squeeze(dim="time")
 
             # Create a binary mask for water. A higher number is less masking.
-            ocean_da = mask_cleanup(water, [("erosion", 30)]).squeeze(dim="time")
+            # The data is 30 m resolution, so 30 x 30 is 900 m buffer
+            ocean_da = mask_cleanup(water, [("erosion", 30)])
 
     # Use all time and Geodata 100K data to produce the buffered coastal
     # study area. The output has values of 0 representing non-coastal

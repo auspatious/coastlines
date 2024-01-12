@@ -71,7 +71,9 @@ def http_to_s3_url(http_url):
 
 
 BAD_IDS = [
-    "LC09_L2SP_124054_20220621_20220624_02_T1_SR"  # Reported to USGS on 11/01/23
+    "LC09_L2SP_124054_20220621_20220624_02_T1_SR",  # Reported to USGS on 11/01/23
+    "LC09_L2SP_124053_20220621_20220624_02_T1_SR",  # Reported to USGS on 12/01/23
+    "LC09_L2SP_124052_20220621_20220624_02_T1_SR",  # Reported to USGS on 12/01/23
 ]
 
 

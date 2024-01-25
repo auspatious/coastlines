@@ -584,6 +584,7 @@ def process_coastlines(
     log: callable,
     load_early: bool = True,
     mask_with_hillshade: bool = False,
+    mask_with_esa_wc: bool = False,
     use_combined_index: bool = False,
 ):
     # Study site geometry and config parsing
@@ -679,7 +680,7 @@ def process_coastlines(
         combined_ds=combined_data,
         water_index=water_index,
         index_threshold=index_threshold,
-        mask_with_esa_wc=True,
+        mask_with_esa_wc=mask_with_esa_wc,
         buffer_pixels=33,
         modifications_gdf=modifications_gdf,
     )
@@ -757,6 +758,7 @@ def process_coastlines(
 @click_overwrite
 @click.option("--load-early/--no-load-early", default=True)
 @click.option("--mask-with-hillshade/--no-mask-with-hillshade", default=False)
+@click.option("--mask-with-esa-wc/--no-mask-with-esa-wc", default=False)
 @click.option("--use-combined-index/--no-use-combined-index", default=False)
 def cli(
     config_path,
@@ -775,6 +777,7 @@ def cli(
     overwrite,
     load_early,
     mask_with_hillshade,
+    mask_with_esa_wc,
     use_combined_index,
 ):
     log = configure_logging("Coastlines")
@@ -841,6 +844,7 @@ def cli(
             log,
             load_early=load_early,
             mask_with_hillshade=mask_with_hillshade,
+            mask_with_esa_wc=mask_with_esa_wc,
             use_combined_index=use_combined_index,
         )
     except CoastlinesException as e:

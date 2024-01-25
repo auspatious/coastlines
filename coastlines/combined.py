@@ -146,13 +146,17 @@ def load_and_mask_data_with_stac(
         n_items = search.matched()
 
     # If we have too many items, filter out some high-cloud scenes
-    if n_items > upper_limit:
-        print("Warning, too many items found. Filtering out some high-cloud scenes")
+    percentage = 100
+    while n_items > upper_limit:
+        percentage -= 5
+        print(f"Warning, too many items found. Filtering to {percentage} % clouds")
         search = client.search(
-            query={"eo:cloud_cover": {"lt": 50}},
+            query={"eo:cloud_cover": {"lt": percentage}},
             **query,
         )
         n_items = search.matched()
+        if percentage == 50:
+            break
 
     # If we still have too few items, raise an error
     if n_items < lower_limit:

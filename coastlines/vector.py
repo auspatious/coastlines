@@ -599,7 +599,6 @@ def contours_preprocess(
     modifications_gdf=None,
     debug=False,
     include_nir=False,
-    nir_threshold=-0.002,
 ):
     """
     Prepares and preprocesses DEA Coastlines raster data to
@@ -674,14 +673,14 @@ def contours_preprocess(
 
     # Apply water index threshold and re-apply nodata values
     nodata = masked_ds[water_index].isnull()
-    ndwi_water = masked_ds[water_index] < index_threshold
+    threshold_water = masked_ds[water_index] < index_threshold
 
-    # Include a NIR threshold, from DE Pacific's example
+    # Include a combined NIR threshold
     if include_nir:
-        nir_water = combined_ds.nir < nir_threshold
-        thresholded_ds = ndwi_water & nir_water
+        nir_water = masked_ds["nir"] > 0.05
+        thresholded_ds = threshold_water & nir_water
     else:
-        thresholded_ds = ndwi_water
+        thresholded_ds = threshold_water
 
     # Mask out the nodata
     thresholded_ds = thresholded_ds.where(~nodata)
@@ -722,8 +721,7 @@ def contours_preprocess(
     rivers = rivers.where(river_mouth_mask, False)
     river_mask = ~xr.apply_ufunc(binary_dilation, rivers, disk(4))
 
-    # This needs checking, as if there's no ocean anywhere some of
-    # the logic below is wrong.
+    # Set up an ocean array to seed the ocean mask
     ocean_da = xr_zeros(combined_ds.odc.geobox) == 0
 
     if mask_with_esa_wc:
@@ -756,6 +754,12 @@ def contours_preprocess(
             # Create a binary mask for water. A higher number is less masking.
             # The data is 30 m resolution, so 30 x 30 is 900 m buffer
             ocean_da = mask_cleanup(water, [("erosion", 30)])
+    else:
+        # Gonna try masking with an eroded land/water mask
+        # ocean_single = thresholded_ds.mean("year") > 0.5
+        # ocean_single = thresholded_ds.all("year")
+        ocean_da = ~mask_cleanup(all_time_20.astype(bool), [("dilation", 20)])
+
 
     # Use all time and Geodata 100K data to produce the buffered coastal
     # study area. The output has values of 0 representing non-coastal
@@ -817,10 +821,10 @@ def contours_preprocess(
         temporal_mask & annual_mask & (coastal_mask == 1)
     )
 
-    if mask_with_esa_wc:
-        masked_ds = masked_ds.where(~ocean_da)
-        # Don't know why the CRS is being lost here...
-        masked_ds = masked_ds.odc.assign_crs(combined_ds.odc.crs)
+    # Mask out the ocean.
+    masked_ds = masked_ds.where(~ocean_da)
+    # # Don't know why the CRS is being lost here...
+    masked_ds = masked_ds.odc.assign_crs(combined_ds.odc.crs)
 
     # Generate annual vector polygon masks containing information
     # about the certainty of each shoreline feature

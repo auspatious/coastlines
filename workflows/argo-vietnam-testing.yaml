@@ -6,7 +6,7 @@ metadata:
 spec:
   serviceAccountName: cenv-coastlines-team-sa-argo
   entrypoint: coastlines-dag
-  parallelism: 40
+  parallelism: 50
   podGC:
     strategy: OnPodSuccess
     deleteDelayDuration: 120s
@@ -23,9 +23,9 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.6.0"
+        value: "0.6.2"
       - name: result-version
-        value: "0.6.1"
+        value: "0.6.2"
       - name: tiles-subset
         value: '[]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
@@ -121,11 +121,11 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            memory: 130Gi
-            cpu: 8.0
-          limits:
+            memory: 180Gi
             cpu: 12.0
-            memory: 150Gi
+          limits:
+            cpu: 16.0
+            memory: 220Gi
         command: [bash, -c]
         args:
           - |
@@ -150,6 +150,7 @@ spec:
               --aws-request-payer \
               --no-aws-unsigned \
               --mask-with-hillshade \
+              --no-mask-with-esa-wc \
               --use-combined-index \
               {{inputs.parameters.overwrite}}
 

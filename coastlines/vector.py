@@ -760,7 +760,6 @@ def contours_preprocess(
         # ocean_single = thresholded_ds.all("year")
         ocean_da = ~mask_cleanup(all_time_20.astype(bool), [("dilation", 20)])
 
-
     # Use all time and Geodata 100K data to produce the buffered coastal
     # study area. The output has values of 0 representing non-coastal
     # "ocean", values of 1 representing "coastal", and values of 2

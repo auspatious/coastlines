@@ -7,4 +7,4 @@ STAC config:
     stac_collections: 
         - "landsat-c2l2-sr"
     lower_scene_limit: 200
-    upper_scene_limit: 3000
+    upper_scene_limit: 2500

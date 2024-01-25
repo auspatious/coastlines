@@ -23,15 +23,15 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.5.0-11-g1e89661"
+        value: "0.5.0-24-gd3af618"
       - name: result-version
-        value: "0.5.1hs"
+        value: "0.6.0"
       - name: tiles-subset
-        value: '[\"14,46\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
+        value: '[]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
         value: configs/vietnam_coastlines_config.yaml
       - name: start-year
-        value: 1985
+        value: 1984
       - name: end-year
         value: 2022
       - name: baseline-year

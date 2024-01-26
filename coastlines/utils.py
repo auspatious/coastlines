@@ -192,7 +192,7 @@ click_overwrite = click.option(
 click_index_threshold = click.option(
     "--index_threshold",
     type=float,
-    default=0.00,
+    default=0.0,
     help="The water index threshold used to extract "
     "subpixel precision shorelines. Defaults to 0.00.",
 )

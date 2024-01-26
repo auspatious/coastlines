@@ -149,7 +149,7 @@ def load_and_mask_data_with_stac(
     percentage = 100
     while n_items > upper_limit:
         percentage -= 5
-        print(f"Warning, too many items found. Filtering to {percentage} % clouds")
+        print(f"Warning, too many items found. Pre-filtering to {percentage}% clouds")
         search = client.search(
             query={"eo:cloud_cover": {"lt": percentage}},
             **query,
@@ -683,10 +683,11 @@ def process_coastlines(
     masked_data, certainty_masks = contours_preprocess(
         combined_ds=combined_data,
         water_index=water_index,
+        buffer_pixels=50,
         index_threshold=index_threshold,
         mask_with_esa_wc=mask_with_esa_wc,
-        buffer_pixels=33,
         modifications_gdf=modifications_gdf,
+        include_nir=use_combined_index,
     )
 
     # Extract shorelines

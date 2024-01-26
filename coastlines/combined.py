@@ -289,7 +289,7 @@ def terrain_shadow(
     ds: xr.Dataset,
     dem: xr.Dataset,
     items_by_time: dict,
-    threshold: float = 0.5,
+    threshold: float = 0.25,
     radius: int = 1,
 ):
     item = items_by_time[ds.time.values.astype(str).split(".")[0]]

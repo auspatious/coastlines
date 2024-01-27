@@ -1,5 +1,6 @@
 import sys
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Tuple, Union
 
@@ -8,11 +9,6 @@ import geopandas as gpd
 import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
-
-from concurrent.futures import ThreadPoolExecutor
-
-# from dea_tools.datahandling import parallel_apply  # Needs a PR merged
-from coastlines.utils import parallel_apply
 from dea_tools.spatial import hillshade
 from odc.algo import mask_cleanup, to_f32
 from odc.stac import configure_s3_access, load
@@ -21,6 +17,8 @@ from pystac_client import Client
 from s3path import S3Path
 
 from coastlines.raster import tide_cutoffs
+
+# from dea_tools.datahandling import parallel_apply  # Needs a PR merged
 from coastlines.utils import (
     CoastlinesException,
     click_aws_request_payer,
@@ -40,6 +38,7 @@ from coastlines.utils import (
     get_study_site_geometry,
     is_s3,
     load_config,
+    parallel_apply,
 )
 from coastlines.vector import (
     all_time_stats,
@@ -683,7 +682,7 @@ def process_coastlines(
     masked_data, certainty_masks = contours_preprocess(
         combined_ds=combined_data,
         water_index=water_index,
-        buffer_pixels=50,
+        buffer_pixels=33,
         index_threshold=index_threshold,
         mask_with_esa_wc=mask_with_esa_wc,
         modifications_gdf=modifications_gdf,

@@ -27,13 +27,13 @@ spec:
       - name: result-version
         value: "0.7.0"
       - name: tiles-subset
-        value: '[\"30,18\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
+        value: '[]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
         value: configs/vietnam_coastlines_config.yaml
       - name: start-year
-        value: 1981
+        value: 1985  # 1985 will be the first year of data, but coastlines are created only from 1986
       - name: end-year
-        value: 2023
+        value: 2023  # 2023 will be the last year of data, but coastlines are created only up to 2022
       - name: baseline-year
         value: 2021
       - name: result-location
@@ -152,11 +152,10 @@ spec:
               --baseline-year {{inputs.parameters.baseline-year}} \
               --aws-request-payer \
               --no-aws-unsigned \
-              --no-mask-with-hillshade \
+              --mask-with-hillshade \
               --no-mask-with-esa-wc \
               --use-combined-index \
               {{inputs.parameters.overwrite}}
-
 
     - name: merge-continental
       metadata:

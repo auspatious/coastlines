@@ -605,6 +605,9 @@ def process_coastlines(
 
     log.info(f"Using water index: {water_index}")
 
+    for option in ["load_early", "mask_with_hillshade", "mask_with_esa_wc", "use_combined_index"]:
+        log.info(f"Configured with {option}: {eval(option)}")
+
     query = {
         "bbox": bbox,
         "datetime": f"{start_year - 1}/{end_year + 1}",

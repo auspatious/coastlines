@@ -690,8 +690,8 @@ def process_coastlines(
     masked_data, certainty_masks = contours_preprocess(
         combined_ds=combined_data,
         water_index=water_index,
-        buffer_pixels=33,
         index_threshold=index_threshold,
+        buffer_pixels=33,
         mask_with_esa_wc=mask_with_esa_wc,
         modifications_gdf=modifications_gdf,
         include_nir=use_combined_index,

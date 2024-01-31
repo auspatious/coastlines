@@ -13,16 +13,16 @@
 
 import os
 import sys
-
-import fiona
-import click
-import pandas as pd
-import geohash as gh
-import geopandas as gpd
 from pathlib import Path
 
-from coastlines.utils import configure_logging, STYLES_FILE
-from coastlines.vector import points_on_line, change_regress, vector_schema
+import click
+import fiona
+import geohash as gh
+import geopandas as gpd
+import pandas as pd
+
+from coastlines.utils import STYLES_FILE, configure_logging
+from coastlines.vector import change_regress, points_on_line, vector_schema
 
 
 def wms_fields(gdf):
@@ -41,7 +41,7 @@ def wms_fields(gdf):
     with a "wms_*" prefix.
     """
 
-    return pd.DataFrame(
+    wms_fields = pd.DataFrame(
         dict(
             wms_abs=gdf.rate_time.abs(),
             wms_conf=gdf.se_time * 1.96,
@@ -50,6 +50,12 @@ def wms_fields(gdf):
             wms_sig=gdf.sig_time <= 0.01,
         )
     )
+
+    # Convert the wms_grew, wms_retr, wms_sig fields boolean values to integers
+    for field in ["wms_grew", "wms_retr", "wms_sig"]:
+        wms_fields[field] = wms_fields[field].astype(int)
+
+    return wms_fields
 
 
 def generate_hotspots(

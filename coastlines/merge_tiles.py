@@ -1,22 +1,24 @@
-from coastlines.utils import (
-    click_output_location,
-    click_output_version,
-    click_baseline_year,
-)
+import tempfile
+from pathlib import Path
+from typing import Iterable, Union
+
+import boto3
 import click
-from s3path import S3Path
-from typing import Iterable
 import geopandas as gpd
 import pandas as pd
-from coastlines.continental import generate_hotspots, wms_fields
-import tempfile
-from coastlines.utils import STYLES_FILE, configure_logging
-from pathlib import Path
-from typing import Union
-from coastlines.utils import is_s3, CoastlinesException
-import boto3
-
 from odc.stac import configure_s3_access
+from s3path import S3Path
+
+from coastlines.continental import generate_hotspots, wms_fields
+from coastlines.utils import (
+    STYLES_FILE,
+    CoastlinesException,
+    click_baseline_year,
+    click_output_location,
+    click_output_version,
+    configure_logging,
+    is_s3,
+)
 
 
 def list_files_s3(input_location: str, suffix: str):
@@ -44,8 +46,10 @@ def find_points_contours(files: Iterable) -> list[list[S3Path], list[S3Path]]:
 def load_parquet_files(files: list[S3Path] | list[Path], output_crs: str):
     data_frames = []
     is_s3 = False
-    if type(files[0]) == S3Path:
+
+    if type(files[0]) is S3Path:
         is_s3 = True
+
     for file in files:
         file_string = str(file)
         if is_s3:
@@ -193,6 +197,11 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
     log.info("Loading files into memory...")
     rates_of_change = load_parquet_files(points_files, output_crs)
     shorelines = load_parquet_files(contours_files, output_crs)
+
+    # Add the WMS fields to the rates of change data
+    rates_of_change = pd.concat(
+        [rates_of_change, wms_fields(gdf=rates_of_change)], axis=1
+    )
 
     log.info("Generating hotspots")
     hotspots = generate_hotspots(

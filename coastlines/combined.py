@@ -495,7 +495,7 @@ def generate_yearly_composites(
 
 
 def extract_points_with_movements(
-    masked_data: xr.Dataset,
+    unmasked_data: xr.Dataset,
     contours: gpd.GeoDataFrame,
     baseline_year: int,
     start_year: int,
@@ -510,7 +510,7 @@ def extract_points_with_movements(
     points = annual_movements(
         points,
         contours,
-        masked_data,
+        unmasked_data,
         str(baseline_year),
         water_index,
         max_valid_dist=2000,  # Increased from 1,200
@@ -711,7 +711,7 @@ def process_coastlines(
 
     log.info("Extracting points and calculating annual movements and statistics")
     points = extract_points_with_movements(
-        masked_data.to_dataset(name=water_index),
+        combined_data,
         contours_with_certainty,
         baseline_year,
         start_year,

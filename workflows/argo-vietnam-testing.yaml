@@ -23,9 +23,9 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.7.0-9-ga865e1e"
+        value: "0.7.0-19-g10012c0"
       - name: result-version
-        value: "0.7.2"
+        value: "0.8.0"
       - name: tiles-subset
         value: '[]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config

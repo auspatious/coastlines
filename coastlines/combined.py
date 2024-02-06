@@ -513,7 +513,7 @@ def extract_points_with_movements(
         unmasked_data,
         str(baseline_year),
         water_index,
-        max_valid_dist=2000,  # Increased from 1,200
+        max_valid_dist=2500,  # Increased from 1,200
     )
 
     # Reindex to add any missing annual columns to the dataset

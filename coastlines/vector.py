@@ -18,23 +18,16 @@ import warnings
 from typing import Union
 
 import click
-import datacube  # noqa
 import geohash as gh
 import geopandas as gpd
 import numpy as np
-import odc.algo  # noqa
 import pandas as pd
 import pyproj
-import rioxarray  # noqa: F401
 import xarray as xr
 from datacube.utils.aws import configure_s3_access
 from dea_tools.spatial import subpixel_contours, xr_rasterize, xr_vectorize
 from geopandas import GeoDataFrame
 from odc.algo import mask_cleanup
-from odc.geo.xr import xr_zeros
-from odc.stac import load
-from planetary_computer import sign_url
-from pystac_client import Client
 from rasterio.features import sieve
 from scipy.stats import circmean, circstd, linregress
 from shapely.ops import nearest_points
@@ -56,6 +49,7 @@ from coastlines.utils import (
     click_index_threshold,
     click_start_year,
     configure_logging,
+    get_esa_water,
     load_config,
 )
 
@@ -721,46 +715,25 @@ def contours_preprocess(
     rivers = rivers.where(river_mouth_mask, False)
     river_mask = ~xr.apply_ufunc(binary_dilation, rivers, disk(4))
 
-    # Set up an ocean array to seed the ocean mask
-    ocean_da = xr_zeros(combined_ds.odc.geobox) == 0
+    # Create a best guess at the ocean extent, with a small reduction in area
+    # so that we can mask out definite ocean, but keep the coast and allow
+    # for coastal change. The figure of 20 is 20 x 30, so 600 m buffer
+    ocean_da = ~mask_cleanup(all_time_20.astype(bool), [("dilation", 20)])
 
     if mask_with_esa_wc:
-        pc_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
-        pc_client = Client.open(pc_url)
+        water = get_esa_water(combined_ds)
 
-        bb = combined_ds.odc.geobox.boundingbox.to_crs(4326)
-        bbox = [bb.left, bb.bottom, bb.right, bb.top]
+        if water is not None:
+            # Contract the ESA water by 30 x 30 m = 900 m, which mostly
+            # remove inland lakes and reservoirs
+            water = mask_cleanup(water, [("erosion", 30)])
 
-        WATER = 80
-        NODATA = 0
-
-        items = list(
-            pc_client.search(
-                collections=["esa-worldcover"], bbox=bbox, datetime="2021"
-            ).items()
-        )
-
-        # Check for no items here
-        if len(items) == 0:
-            print("Warning, no ESA World Cover data found here")
-            mask_with_esa_wc = False
-            # TODO: Consider raising an exception here
+            # Add the ESA water as another layer to the ocean_da
+            ocean_da = ocean_da | water
         else:
-            landcover = load(
-                items, geobox=combined_ds.odc.geobox, patch_url=sign_url, bands=["map"]
-            )["map"]
-            water = landcover.isin([WATER, NODATA]).squeeze(dim="time")
+            print("No ESA world cover data found. Not including in ocean_da")
 
-            # Create a binary mask for water. A higher number is less masking.
-            # The data is 30 m resolution, so 30 x 30 is 900 m buffer
-            ocean_da = mask_cleanup(water, [("erosion", 30)])
-    else:
-        # Gonna try masking with an eroded land/water mask
-        # ocean_single = thresholded_ds.mean("year") > 0.5
-        # ocean_single = thresholded_ds.all("year")
-        ocean_da = ~mask_cleanup(all_time_20.astype(bool), [("dilation", 20)])
-
-    # Use all time and Geodata 100K data to produce the buffered coastal
+    # Use all time and our best guess at where the oceans are to create a
     # study area. The output has values of 0 representing non-coastal
     # "ocean", values of 1 representing "coastal", and values of 2
     # representing non-coastal "inland" pixels.

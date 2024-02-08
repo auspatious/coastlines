@@ -7,7 +7,11 @@ import fsspec
 import geopandas as gpd
 import yaml
 from geopandas import GeoDataFrame
+from odc.stac import load
+from planetary_computer import sign_url
+from pystac_client import Client
 from s3path import S3Path
+from xarray import Dataset
 
 STYLES_FILE = Path(__file__).parent / "styles.csv"
 
@@ -67,17 +71,48 @@ def get_study_site_geometry(grid_path: str, study_area: str) -> gpd.GeoDataFrame
     return gridcell_gdf
 
 
+def get_esa_water(combined_ds: Dataset):
+    pc_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
+    pc_client = Client.open(pc_url)
+
+    bb = combined_ds.odc.geobox.boundingbox.to_crs(4326)
+    bbox = [bb.left, bb.bottom, bb.right, bb.top]
+
+    WATER = 80
+    NODATA = 0
+
+    items = list(
+        pc_client.search(
+            collections=["esa-worldcover"], bbox=bbox, datetime="2021"
+        ).items()
+    )
+
+    water = None
+
+    # Check for no items here
+    if len(items) == 0:
+        print("Warning, no ESA World Cover data found here")
+    else:
+        landcover = load(
+            items, geobox=combined_ds.odc.geobox, patch_url=sign_url, bands=["map"]
+        )["map"]
+        water = landcover.isin([WATER, NODATA]).squeeze(dim="time")
+
+    return water
+
+
 def parallel_apply(ds, dim, func, use_threads=False, *args, **kwargs):
     """
     Temporarily copied until this PR is merged:
     https://github.com/GeoscienceAustralia/dea-notebooks/pull/1171
     """
 
-    import xarray as xr
     from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-    from tqdm import tqdm
-    from itertools import repeat
     from functools import partial
+    from itertools import repeat
+
+    import xarray as xr
+    from tqdm import tqdm
 
     if use_threads:
         Executor = ThreadPoolExecutor

@@ -33,6 +33,8 @@ REQUIRED = [
     "odc_ui",
     "pandas",
     "pyarrow",
+    "pydantic",
+    "pydantic_yaml"
     "pyproj",
     "pyTMD",
     "python_geohash",

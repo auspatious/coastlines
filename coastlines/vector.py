@@ -729,7 +729,7 @@ def contours_preprocess(
             water = mask_cleanup(water, [("erosion", 30)])
 
             # Add the ESA water as another layer to the ocean_da
-            ocean_da = ocean_da | water
+            ocean_da = ocean_da & water
         else:
             print("No ESA world cover data found. Not including in ocean_da")
 

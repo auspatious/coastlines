@@ -155,7 +155,7 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
             )
 
         # Handy built-in styles
-        styles = gpd.read_file(STYLES_FILE)
+        styles = gpd.read_file(STYLES_FILE, KEEP_GEOM_COLUMNS=False, GEOM_POSSIBLE_NAMES="geometry")
         styles.to_file(temp_geopackage, layer="layer_styles", driver="GPKG")
 
         # Shift the tempfile to its final destination

@@ -1,4 +1,4 @@
-f_table_catalog,f_table_schema,f_table_name,f_geometry_column,styleName,styleQML,styleSLD,useAsDefault,description,owner,ui,update_time,geometry
+f_table_catalog,f_table_schema,f_table_name,f_geometry_column,styleName,styleQML,styleSLD,useAsDefault,description,owner,ui,update_time
 ,,hotspots_zoom_1,geom,hotspots_zoom_1,"<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
 <qgis styleCategories=""AllStyleCategories"" minScale=""100000000"" version=""3.16.14-Hannover"" simplifyDrawingTol=""1"" simplifyLocal=""1"" simplifyAlgorithm=""0"" readOnly=""0"" simplifyMaxScale=""1"" hasScaleBasedVisibilityFlag=""1"" labelsEnabled=""0"" simplifyDrawingHints=""0"" maxScale=""20000000"">
  <flags>
@@ -2124,7 +2124,7 @@ def my_form_open(dialog, layer, feature):
   </UserStyle>
  </NamedLayer>
 </StyledLayerDescriptor>
-",1,Wed Oct 19 11:00:35 2022,,,2022-06-02T07:16:18+00:00,
+",1,Wed Oct 19 11:00:35 2022,,,2022-06-02T07:16:18+00:00
 ,,hotspots_zoom_2,geom,hotspots_zoom_2,"<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
 <qgis styleCategories=""AllStyleCategories"" minScale=""20000000"" version=""3.16.14-Hannover"" simplifyDrawingTol=""1"" simplifyLocal=""1"" simplifyAlgorithm=""0"" readOnly=""0"" simplifyMaxScale=""1"" hasScaleBasedVisibilityFlag=""1"" labelsEnabled=""0"" simplifyDrawingHints=""0"" maxScale=""5000000"">
  <flags>
@@ -4250,7 +4250,7 @@ def my_form_open(dialog, layer, feature):
   </UserStyle>
  </NamedLayer>
 </StyledLayerDescriptor>
-",1,Wed Oct 19 11:00:44 2022,,,2022-06-02T07:16:18+00:00,
+",1,Wed Oct 19 11:00:44 2022,,,2022-06-02T07:16:18+00:00
 ,,hotspots_zoom_3,geom,hotspots_zoom_3,"<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
 <qgis styleCategories=""AllStyleCategories"" minScale=""5000000"" version=""3.16.14-Hannover"" simplifyDrawingTol=""1"" simplifyLocal=""1"" simplifyAlgorithm=""0"" readOnly=""0"" simplifyMaxScale=""1"" hasScaleBasedVisibilityFlag=""1"" labelsEnabled=""0"" simplifyDrawingHints=""0"" maxScale=""500000"">
  <flags>
@@ -6376,7 +6376,7 @@ def my_form_open(dialog, layer, feature):
   </UserStyle>
  </NamedLayer>
 </StyledLayerDescriptor>
-",1,Wed Oct 19 11:00:54 2022,,,2022-06-02T07:16:18+00:00,
+",1,Wed Oct 19 11:00:54 2022,,,2022-06-02T07:16:18+00:00
 ,,rates_of_change,geom,rates_of_change,"<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
 <qgis styleCategories=""AllStyleCategories"" minScale=""500000"" version=""3.16.14-Hannover"" simplifyDrawingTol=""1"" simplifyLocal=""1"" simplifyAlgorithm=""0"" readOnly=""0"" simplifyMaxScale=""1"" hasScaleBasedVisibilityFlag=""1"" labelsEnabled=""1"" simplifyDrawingHints=""0"" maxScale=""25000"">
  <flags>
@@ -8617,7 +8617,7 @@ def my_form_open(dialog, layer, feature):
   </UserStyle>
  </NamedLayer>
 </StyledLayerDescriptor>
-",1,Wed Oct 19 11:01:04 2022,,,2022-06-02T07:16:19+00:00,
+",1,Wed Oct 19 11:01:04 2022,,,2022-06-02T07:16:19+00:00
 ,,shorelines_annual,geom,shorelines_annual,"<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
 <qgis simplifyDrawingTol=""1"" simplifyMaxScale=""1"" minScale=""25000"" simplifyDrawingHints=""1"" labelsEnabled=""1"" readOnly=""0"" version=""3.34.1-Prizren"" maxScale=""0"" simplifyAlgorithm=""0"" simplifyLocal=""1"" styleCategories=""AllStyleCategories"" symbologyReferenceScale=""-1"" hasScaleBasedVisibilityFlag=""1"">
  <flags>
@@ -15306,4 +15306,4 @@ def my_form_open(dialog, layer, feature):
   </UserStyle>
  </NamedLayer>
 </StyledLayerDescriptor>
-",1,Wed Feb 7 10:18:57 2024,,,2022-06-02T07:16:19+00:00,
+",1,Wed Feb 7 10:18:57 2024,,,2022-06-02T07:16:19+00:00

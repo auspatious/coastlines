@@ -23,9 +23,9 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.8.1"
+        value: "0.8.1-13-g6a753e0"
       - name: result-version
-        value: "0.8.0b1"
+        value: "0.8.2"
       - name: tiles-subset
         value: '[\"33,22\"]'  # Can be [] for all tiles or '[\"9,18\", \"9,19\", \"9,20\", \"10,18\", \"10,19\", \"10,20\"]'
       - name: config
@@ -153,7 +153,7 @@ spec:
               --aws-request-payer \
               --no-aws-unsigned \
               --mask-with-hillshade \
-              --no-mask-with-esa-wc \
+              --mask-with-esa-wc \
               --use-combined-index \
               {{inputs.parameters.overwrite}}
 

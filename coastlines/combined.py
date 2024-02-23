@@ -10,7 +10,7 @@ import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
 from dea_tools.spatial import hillshade
-from odc.algo import mask_cleanup, to_f32
+from odc.algo import mask_cleanup, to_f32, erase_bad
 from odc.stac import configure_s3_access, load
 from pystac import ItemCollection
 from pystac_client import Client
@@ -333,7 +333,7 @@ def mask_pixels_by_hillshadow(
         )
 
         # Filter out the hill shaded pixels
-        ds = ds.where(~hillshadow)
+        ds = erase_bad(ds, hillshadow)
         if debug:
             return ds, hillshadow
 
@@ -354,7 +354,7 @@ def mask_pixels_by_tide(
     extreme_tides = (tides <= tide_cutoff_min) | (tides >= tide_cutoff_max)
 
     # Filter out the extreme high- and low-tide pixels
-    ds = ds.where(~extreme_tides)
+    ds = erase_bad(ds, extreme_tides)
 
     if debug:
         return ds, tides, tides_lowres, extreme_tides

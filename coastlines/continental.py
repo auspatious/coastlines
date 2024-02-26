@@ -51,9 +51,8 @@ def wms_fields(gdf):
         )
     )
 
-    # Convert the wms_grew, wms_retr, wms_sig fields boolean values to integers
     for field in ["wms_grew", "wms_retr", "wms_sig"]:
-        wms_fields[field] = wms_fields[field].astype(int)
+        wms_fields[field] = wms_fields[field]
 
     return wms_fields
 

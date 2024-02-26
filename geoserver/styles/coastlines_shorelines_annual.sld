@@ -1877,33 +1877,7 @@
                             <sld:CssParameter name="stroke-dasharray">5.0 3.5</sld:CssParameter>
                         </sld:Stroke>
                     </sld:LineSymbolizer>
-                </sld:Rule><sld:Rule>
-            <sld:MaxScaleDenominator>10000.0</sld:MaxScaleDenominator>
-            <sld:TextSymbolizer>
-                <sld:Label>
-                    <ogc:PropertyName>year</ogc:PropertyName>
-                </sld:Label>
-                <sld:Font>
-                    <sld:CssParameter name="font-family">SansSerif.plain</sld:CssParameter>
-                    <sld:CssParameter name="font-size">13</sld:CssParameter>
-                    <sld:CssParameter name="font-style">normal</sld:CssParameter>
-                    <sld:CssParameter name="font-weight">normal</sld:CssParameter>
-                </sld:Font>
-                <sld:LabelPlacement>
-                    <sld:LinePlacement/>
-                </sld:LabelPlacement>
-                <sld:Halo>
-                    <sld:Radius>2</sld:Radius>
-                    <sld:Fill>
-                        <sld:CssParameter name="fill">#000000</sld:CssParameter>
-                        <sld:CssParameter name="fill-opacity">0.477</sld:CssParameter>
-                    </sld:Fill>
-                </sld:Halo>
-                <sld:Fill>
-                    <sld:CssParameter name="fill">#ffffff</sld:CssParameter>
-                </sld:Fill>
-            </sld:TextSymbolizer>
-        </sld:Rule></sld:FeatureTypeStyle>
+                </sld:Rule></sld:FeatureTypeStyle>
         </sld:UserStyle>
     </sld:NamedLayer>
 </sld:StyledLayerDescriptor>

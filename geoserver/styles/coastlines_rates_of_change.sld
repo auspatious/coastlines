@@ -665,7 +665,8 @@
                         <sld:Priority>100</sld:Priority>
                     </sld:TextSymbolizer>
                 </sld:Rule>
-                <sld:VendorOption name="sortBy">wms_sig A, wms_good A, wms_abs A</sld:VendorOption>
+                <!-- removed wms_good A -->
+                <sld:VendorOption name="sortBy">wms_sig A, wms_abs A</sld:VendorOption>
             </sld:FeatureTypeStyle>
         </sld:UserStyle>
     </sld:NamedLayer>

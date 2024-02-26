@@ -5,6 +5,7 @@
             <sld:Name>coastlines_shorelines_annual</sld:Name>
             <sld:FeatureTypeStyle>
                 <sld:Name>name</sld:Name>
+                <sld:VendorOption name="sortBy">year</sld:VendorOption>
             <sld:Rule>
                     <sld:Name>1985</sld:Name>
                     <sld:Title>1985 (good quality shorelines)</sld:Title>
@@ -20,7 +21,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#000004</sld:CssParameter>
@@ -44,7 +45,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#02020e</sld:CssParameter>
@@ -68,7 +69,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#08051d</sld:CssParameter>
@@ -92,7 +93,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#10092d</sld:CssParameter>
@@ -116,7 +117,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#180c3c</sld:CssParameter>
@@ -140,7 +141,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#230c4c</sld:CssParameter>
@@ -164,7 +165,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#2f0a5b</sld:CssParameter>
@@ -188,7 +189,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#3b0964</sld:CssParameter>
@@ -212,7 +213,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#450a69</sld:CssParameter>
@@ -236,7 +237,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#510e6c</sld:CssParameter>
@@ -260,7 +261,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#5c126e</sld:CssParameter>
@@ -284,7 +285,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#67166e</sld:CssParameter>
@@ -308,7 +309,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#71196e</sld:CssParameter>
@@ -332,7 +333,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#7c1d6d</sld:CssParameter>
@@ -356,7 +357,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#87216b</sld:CssParameter>
@@ -380,7 +381,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#922568</sld:CssParameter>
@@ -404,7 +405,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#9b2964</sld:CssParameter>
@@ -428,7 +429,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#a62d60</sld:CssParameter>
@@ -452,7 +453,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#b1325a</sld:CssParameter>
@@ -476,7 +477,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#bc3754</sld:CssParameter>
@@ -500,7 +501,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#c43c4e</sld:CssParameter>
@@ -524,7 +525,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#ce4347</sld:CssParameter>
@@ -548,7 +549,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#d74b3f</sld:CssParameter>
@@ -572,7 +573,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#de5238</sld:CssParameter>
@@ -596,7 +597,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#e55c30</sld:CssParameter>
@@ -620,7 +621,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#eb6628</sld:CssParameter>
@@ -644,7 +645,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f1711f</sld:CssParameter>
@@ -668,7 +669,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f57b17</sld:CssParameter>
@@ -692,7 +693,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f8870e</sld:CssParameter>
@@ -716,7 +717,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fa9407</sld:CssParameter>
@@ -740,7 +741,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fca108</sld:CssParameter>
@@ -764,7 +765,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fcac11</sld:CssParameter>
@@ -788,7 +789,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fbba1f</sld:CssParameter>
@@ -812,7 +813,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f9c72f</sld:CssParameter>
@@ -836,7 +837,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f6d543</sld:CssParameter>
@@ -860,7 +861,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f4e156</sld:CssParameter>
@@ -884,7 +885,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f1ed71</sld:CssParameter>
@@ -908,7 +909,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f4f88e</sld:CssParameter>
@@ -932,7 +933,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fcffa4</sld:CssParameter>
@@ -956,7 +957,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#000004</sld:CssParameter>
@@ -980,7 +981,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#02020e</sld:CssParameter>
@@ -1004,7 +1005,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#08051d</sld:CssParameter>
@@ -1028,7 +1029,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#10092d</sld:CssParameter>
@@ -1052,7 +1053,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#180c3c</sld:CssParameter>
@@ -1076,7 +1077,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#230c4c</sld:CssParameter>
@@ -1100,7 +1101,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#2f0a5b</sld:CssParameter>
@@ -1124,7 +1125,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#3b0964</sld:CssParameter>
@@ -1148,7 +1149,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#450a69</sld:CssParameter>
@@ -1172,7 +1173,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#510e6c</sld:CssParameter>
@@ -1196,7 +1197,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#5c126e</sld:CssParameter>
@@ -1220,7 +1221,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#67166e</sld:CssParameter>
@@ -1244,7 +1245,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#71196e</sld:CssParameter>
@@ -1268,7 +1269,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#7c1d6d</sld:CssParameter>
@@ -1292,7 +1293,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#87216b</sld:CssParameter>
@@ -1316,7 +1317,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#922568</sld:CssParameter>
@@ -1340,7 +1341,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#9b2964</sld:CssParameter>
@@ -1364,7 +1365,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#a62d60</sld:CssParameter>
@@ -1388,7 +1389,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#b1325a</sld:CssParameter>
@@ -1412,7 +1413,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#bc3754</sld:CssParameter>
@@ -1436,7 +1437,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#c43c4e</sld:CssParameter>
@@ -1460,7 +1461,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#ce4347</sld:CssParameter>
@@ -1484,7 +1485,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#d74b3f</sld:CssParameter>
@@ -1508,7 +1509,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#de5238</sld:CssParameter>
@@ -1532,7 +1533,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#e55c30</sld:CssParameter>
@@ -1556,7 +1557,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#eb6628</sld:CssParameter>
@@ -1580,7 +1581,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f1711f</sld:CssParameter>
@@ -1604,7 +1605,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f57b17</sld:CssParameter>
@@ -1628,7 +1629,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f8870e</sld:CssParameter>
@@ -1652,7 +1653,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fa9407</sld:CssParameter>
@@ -1676,7 +1677,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fca108</sld:CssParameter>
@@ -1700,7 +1701,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fcac11</sld:CssParameter>
@@ -1724,7 +1725,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fbba1f</sld:CssParameter>
@@ -1748,7 +1749,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f9c72f</sld:CssParameter>
@@ -1772,7 +1773,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f6d543</sld:CssParameter>
@@ -1796,7 +1797,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f4e156</sld:CssParameter>
@@ -1820,7 +1821,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f1ed71</sld:CssParameter>
@@ -1844,7 +1845,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#f4f88e</sld:CssParameter>
@@ -1868,7 +1869,7 @@
                             </ogc:PropertyIsEqualTo>
                         </ogc:And>
                     </ogc:Filter>
-                    <sld:MaxScaleDenominator>30000.0</sld:MaxScaleDenominator>
+                    <sld:MaxScaleDenominator>50000.0</sld:MaxScaleDenominator>
                     <sld:LineSymbolizer>
                         <sld:Stroke>
                             <sld:CssParameter name="stroke">#fcffa4</sld:CssParameter>
@@ -1877,7 +1878,33 @@
                             <sld:CssParameter name="stroke-dasharray">5.0 3.5</sld:CssParameter>
                         </sld:Stroke>
                     </sld:LineSymbolizer>
-                </sld:Rule></sld:FeatureTypeStyle>
+                </sld:Rule><sld:Rule>
+            <sld:MaxScaleDenominator>10000.0</sld:MaxScaleDenominator>
+            <sld:TextSymbolizer>
+                <sld:Label>
+                    <ogc:PropertyName>year</ogc:PropertyName>
+                </sld:Label>
+                <sld:Font>
+                    <sld:CssParameter name="font-family">SansSerif.plain</sld:CssParameter>
+                    <sld:CssParameter name="font-size">13</sld:CssParameter>
+                    <sld:CssParameter name="font-style">normal</sld:CssParameter>
+                    <sld:CssParameter name="font-weight">normal</sld:CssParameter>
+                </sld:Font>
+                <sld:LabelPlacement>
+                    <sld:LinePlacement/>
+                </sld:LabelPlacement>
+                <sld:Halo>
+                    <sld:Radius>2</sld:Radius>
+                    <sld:Fill>
+                        <sld:CssParameter name="fill">#000000</sld:CssParameter>
+                        <sld:CssParameter name="fill-opacity">0.477</sld:CssParameter>
+                    </sld:Fill>
+                </sld:Halo>
+                <sld:Fill>
+                    <sld:CssParameter name="fill">#ffffff</sld:CssParameter>
+                </sld:Fill>
+            </sld:TextSymbolizer>
+        </sld:Rule></sld:FeatureTypeStyle>
         </sld:UserStyle>
     </sld:NamedLayer>
 </sld:StyledLayerDescriptor>

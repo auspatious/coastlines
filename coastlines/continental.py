@@ -48,11 +48,9 @@ def wms_fields(gdf):
             wms_grew=gdf.rate_time < 0,
             wms_retr=gdf.rate_time > 0,
             wms_sig=gdf.sig_time <= 0.01,
+            wms_good=gdf.certainty == "good",
         )
     )
-
-    for field in ["wms_grew", "wms_retr", "wms_sig"]:
-        wms_fields[field] = wms_fields[field]
 
     return wms_fields
 

@@ -333,7 +333,7 @@ def mask_pixels_by_hillshadow(
         )
 
         # Filter out the hill shaded pixels
-        ds = erase_bad(ds, hillshadow)
+        ds = ds.where(~hillshadow)
         if debug:
             return ds, hillshadow
 
@@ -354,7 +354,7 @@ def mask_pixels_by_tide(
     extreme_tides = (tides <= tide_cutoff_min) | (tides >= tide_cutoff_max)
 
     # Filter out the extreme high- and low-tide pixels
-    ds = erase_bad(ds, extreme_tides)
+    ds = ds.where(~extreme_tides)
 
     if debug:
         return ds, tides, tides_lowres, extreme_tides

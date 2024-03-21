@@ -571,15 +571,15 @@ def points_certainty(
     ] = f"extreme value (> {rate_of_change_threshold} m)"
 
     # Flag points where change does not fall on a line
-    points_gdf.loc[
-        points_gdf.angle_std > angle_threshold, "certainty"
-    ] = "high angular variability"
+    points_gdf.loc[points_gdf.angle_std > angle_threshold, "certainty"] = (
+        "high angular variability"
+    )
 
     # Flag shorelines with less than X valid shorelines
     valid_obs_thresh = int(points_gdf.columns.str.contains("dist_").sum() * 0.75)
-    points_gdf.loc[
-        points_gdf.valid_obs < valid_obs_thresh, "certainty"
-    ] = "insufficient observations"
+    points_gdf.loc[points_gdf.valid_obs < valid_obs_thresh, "certainty"] = (
+        "insufficient observations"
+    )
 
     return points_gdf
 
@@ -1221,9 +1221,9 @@ def calculate_regressions(points_gdf):
         ),
         axis=1,
     )
-    points_gdf[
-        ["rate_time", "incpt_time", "sig_time", "se_time", "outl_time"]
-    ] = rate_out
+    points_gdf[["rate_time", "incpt_time", "sig_time", "se_time", "outl_time"]] = (
+        rate_out
+    )
 
     # Copy slope and intercept into points_subset so they can be
     # used to temporally de-trend annual distances

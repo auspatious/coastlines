@@ -33,6 +33,7 @@ REQUIRED = [
     "odc_ui",
     "pandas",
     "pyarrow",
+    "pydantic",
     "pyproj",
     "pyTMD",
     "python_geohash",
@@ -48,6 +49,7 @@ REQUIRED = [
     "Shapely",
     "tqdm",
     "xarray",
+    "pyyaml",
 ]
 
 # Package metadata

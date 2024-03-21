@@ -1,3 +1,4 @@
+from yaml import safe_load
 import logging
 from pathlib import Path
 from typing import Union
@@ -5,13 +6,15 @@ from typing import Union
 import click
 import fsspec
 import geopandas as gpd
-import yaml
 from geopandas import GeoDataFrame
 from odc.stac import load
 from planetary_computer import sign_url
 from pystac_client import Client
 from s3path import S3Path
 from xarray import Dataset
+
+from coastlines.config import CoastlinesConfig
+
 
 STYLES_FILE = Path(__file__).parent / "styles.csv"
 
@@ -52,8 +55,8 @@ def load_config(config_path: str) -> dict:
     config_path can be a path or URL to a web accessible YAML file
     """
     with fsspec.open(config_path, mode="r") as f:
-        config = yaml.safe_load(f)
-    return config
+        loaded = safe_load(f)
+        return CoastlinesConfig(**loaded)
 
 
 def load_json(grid_path: str) -> GeoDataFrame:

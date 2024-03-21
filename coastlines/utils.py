@@ -48,11 +48,15 @@ def configure_logging(name: str = "Coastlines") -> logging.Logger:
     return logger
 
 
-def load_config(config_path: str) -> dict:
+def load_config(config_path: str) -> CoastlinesConfig:
     """
-    Loads a YAML config file and returns data as a nested dictionary.
+    Load a CoastlinesConfig object from a YAML configuration file.
 
-    config_path can be a path or URL to a web accessible YAML file
+    Parameters:
+        config_path (str): The path to the YAML configuration file.
+
+    Returns:
+        CoastlinesConfig: The loaded CoastlinesConfig object.
     """
     with fsspec.open(config_path, mode="r") as f:
         loaded = safe_load(f)

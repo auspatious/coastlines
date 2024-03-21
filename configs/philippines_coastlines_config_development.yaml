@@ -5,7 +5,7 @@ input:
 
 output:
   location: "data/interim/vector"
-  crs: "EPSG:3405"
+  crs: "EPSG:32751"
 
 stac:
   stac_api_url: "https://landsatlook.usgs.gov/stac-server"

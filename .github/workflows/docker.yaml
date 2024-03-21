@@ -28,7 +28,7 @@ jobs:
           options: "--check --verbose"
           src: "./coastlines"
           jupyter: true
-          version: "~= 22.0"
+          version: "~= 24.0"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

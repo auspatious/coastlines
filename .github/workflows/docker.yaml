@@ -23,11 +23,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check formatting
-        uses: rickstaa/action-black@v1
-        id: action_black
+      - uses: psf/black@stable
         with:
-          black_args: "--check coastlines"
+          options: "--check --verbose"
+          src: "./coastlines"
+          jupyter: true
+          version: "~= 22.0"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

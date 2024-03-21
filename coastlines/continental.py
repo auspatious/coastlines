@@ -122,9 +122,9 @@ def generate_hotspots(
         # hotspots radius by 30 m along-shore rates of change point distance)
         hotspots_gdf["n"] = hotspot_grouped.size()
         hotspots_gdf["n"] = hotspots_gdf["n"].fillna(0)
-        hotspots_gdf.loc[
-            hotspots_gdf.n < (radius / 30), "certainty"
-        ] = "insufficient points"
+        hotspots_gdf.loc[hotspots_gdf.n < (radius / 30), "certainty"] = (
+            "insufficient points"
+        )
 
         # Generate a geohash UID for each point and set as index
         uids = (

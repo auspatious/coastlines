@@ -49,7 +49,7 @@ REQUIRED = [
     "Shapely",
     "tqdm",
     "xarray",
-    "pyyaml"
+    "pyyaml",
 ]
 
 # Package metadata

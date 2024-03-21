@@ -4,13 +4,15 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Tuple, Union
 
+from coastlines.config import CoastlinesConfig
+
 import click
 import geopandas as gpd
 import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
 from dea_tools.spatial import hillshade
-from odc.algo import mask_cleanup, to_f32, erase_bad
+from odc.algo import mask_cleanup, to_f32
 from odc.stac import configure_s3_access, load
 from pystac import ItemCollection
 from pystac_client import Client
@@ -110,7 +112,7 @@ def get_output_path(
 
 
 def load_and_mask_data_with_stac(
-    config: dict,
+    config: CoastlinesConfig,
     query: dict,
     upper_scene_limit: int = 3000,
     lower_scene_limit: int = 200,
@@ -120,16 +122,13 @@ def load_and_mask_data_with_stac(
     optimise_combined: bool = True,
     debug: bool = False,
 ) -> xr.Dataset:
-    stac_config = config["STAC config"]
-    stac_api_url = stac_config["stac_api_url"]
-    collections = stac_config["stac_collections"]
-    lower_limit = stac_config.get("lower_scene_limit", lower_scene_limit)
-    upper_limit = stac_config.get("upper_scene_limit", upper_scene_limit)
+    lower_limit = config.stac.lower_scene_limit
+    upper_limit = config.stac.upper_scene_limit
 
-    client = Client.open(stac_api_url)
+    client = Client.open(config.stac.stac_api_url)
 
     # Search for STAC Items. First for only T1 then for both T1 and T2
-    query["collections"] = collections
+    query["collections"] = config.stac.stac_collections
     search = client.search(
         query={"landsat:collection_category": {"in": ["T1"]}},
         **query,

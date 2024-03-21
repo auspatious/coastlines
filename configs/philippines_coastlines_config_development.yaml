@@ -1,5 +1,5 @@
 input:
-  grid_path: "data/raw/phillipines_tiles.geojson"
+  grid_path: "data/raw/philippines_tiles.geojson"
   modifications_path: "data/raw/empty_modifications.geojson"
   # geomorphology_path: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip"
 

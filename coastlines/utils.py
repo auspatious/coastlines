@@ -1,3 +1,4 @@
+from yaml import safe_load
 import logging
 from pathlib import Path
 from typing import Union
@@ -13,7 +14,6 @@ from s3path import S3Path
 from xarray import Dataset
 
 from coastlines.config import CoastlinesConfig
-from pydantic_yaml import parse_yaml_file_as
 
 
 STYLES_FILE = Path(__file__).parent / "styles.csv"
@@ -55,7 +55,8 @@ def load_config(config_path: str) -> dict:
     config_path can be a path or URL to a web accessible YAML file
     """
     with fsspec.open(config_path, mode="r") as f:
-        return parse_yaml_file_as(CoastlinesConfig, f)
+        loaded = safe_load(f)
+        return CoastlinesConfig(**loaded)
 
 
 def load_json(grid_path: str) -> GeoDataFrame:

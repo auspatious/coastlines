@@ -34,7 +34,6 @@ REQUIRED = [
     "pandas",
     "pyarrow",
     "pydantic",
-    "pydantic_yaml"
     "pyproj",
     "pyTMD",
     "python_geohash",
@@ -50,6 +49,7 @@ REQUIRED = [
     "Shapely",
     "tqdm",
     "xarray",
+    "pyyaml"
 ]
 
 # Package metadata

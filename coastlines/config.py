@@ -38,16 +38,14 @@ class Options(BaseModel):
     mask_with_esa_wc: bool = True
     use_combined_index: bool = False
 
-    tide_centre = 0.0
+    tide_centre: float = 0.0
     load_buffer_distance: int = 1000
 
 
 class CoastlinesConfig(BaseModel):
     input: Input
     output: Output
-
-    stac: Optional[STAC]
-
     options: Options
 
-    aws: Optional[AWS]
+    stac: STAC | None = None
+    aws: AWS | None = None

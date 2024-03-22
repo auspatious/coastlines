@@ -183,13 +183,13 @@ def cli(config_path, output_version):
     config = load_config(config_path)
     log = configure_logging()
 
-    log.info(f"Merging files from {config.options.output_location}")
+    log.info(f"Merging files from {config.output.location}")
 
     log.info("Configuring S3")
     configure_s3_access()
 
     log.info("Listing files")
-    input_location = f"{config.options.output_location}/{config.options.output_version}"
+    input_location = f"{config.output.location}/{config.options.output_version}"
     files = list_files_s3(input_location, suffix=".parquet")
 
     points_files, contours_files = find_points_contours(files)
@@ -203,8 +203,8 @@ def cli(config_path, output_version):
         raise CoastlinesException("No points or contours files found")
 
     log.info("Loading files into memory...")
-    rates_of_change = load_parquet_files(points_files, config.options.output_crs)
-    shorelines = load_parquet_files(contours_files, config.options.output_crs)
+    rates_of_change = load_parquet_files(points_files, config.output.crs)
+    shorelines = load_parquet_files(contours_files, config.output.crs)
 
     # Add the WMS fields to the rates of change data
     rates_of_change = pd.concat(
@@ -225,7 +225,7 @@ def cli(config_path, output_version):
         rates_of_change,
         shorelines,
         hotspots,
-        config.options.output_location,
+        config.output.location,
         output_version,
     )
 

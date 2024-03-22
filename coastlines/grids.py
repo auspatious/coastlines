@@ -14,7 +14,7 @@ VIETNAM_10 = GridSpec(
 
 # Philippines-related grids
 
-PHILIPPINES_CRS = "EPSG:32751"
+PHILIPPINES_CRS = "EPSG:32651"
 
 PHILIPPINES_25 = GridSpec(
     crs=PHILIPPINES_CRS, tile_shape=(2000, 2000), resolution=25, origin=XY(-10000000, 0)

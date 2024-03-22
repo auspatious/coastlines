@@ -5,7 +5,7 @@ input:
 
 output:
   location: "s3://easi-asia-dc-data-projects/coastlines/ph/"
-  crs: "EPSG:32751"
+  crs: "EPSG:32651"
 
 stac:
   stac_api_url: "https://landsatlook.usgs.gov/stac-server"

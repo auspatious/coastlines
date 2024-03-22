@@ -25,4 +25,4 @@ options:
   mask_with_esa_wc: True
   use_combined_index: True
 
-  load_buffer_distance: 1000
+  load_buffer_distance: 5000

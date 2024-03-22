@@ -210,12 +210,12 @@ click_tide_centre = click.option(
 click_buffer = click.option(
     "--buffer",
     type=float,
-    default=0.05,
-    help="The distance (in degrees) to buffer the study area grid cell "
+    default=5000.0,
+    help="The distance (in CRS) to buffer the study area grid cell "
     "extent. This buffer is important for ensuring that generated "
     "rasters overlap along the boundaries of neighbouring study areas "
     "so that we can extract seamless vector shorelines. Defaults to "
-    "0.05 degrees, or roughly 5 km at the equator.",
+    "5,000, so normaly 5 km.",
 )
 click_aws_unsigned = click.option(
     "--aws-unsigned/--no-aws-unsigned",

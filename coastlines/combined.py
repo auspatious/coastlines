@@ -23,7 +23,6 @@ from coastlines.raster import tide_cutoffs
 # from dea_tools.datahandling import parallel_apply  # Needs a PR merged
 from coastlines.utils import (
     CoastlinesException,
-    click_buffer,
     click_config_path,
     click_output_location,
     click_output_version,
@@ -570,7 +569,6 @@ def process_coastlines(
     output_version: str,
     output_location: str | None,
     tide_data_location: str,
-    buffer: float,
     log: callable,
     load_early: bool = True,
 ):
@@ -579,7 +577,12 @@ def process_coastlines(
     log.info(f"Loaded geometry for study area {study_area}")
 
     # Config shenanigans
-    bbox = list(geometry.buffer(buffer).bounds.values[0])
+    bbox = list(
+        geometry.to_crs(config.options.output_crs)
+        .buffer(config.options.load_buffer_distance)
+        .to_crs("epsg:4326")
+        .bounds.values[0]
+    )
     log.info(f"Using bounding box: {bbox}")
 
     # Either use the MNDWI index or the combined index
@@ -732,7 +735,6 @@ def process_coastlines(
 @click_output_version
 @click_output_location
 @click.option("--tide-data-location", type=str, required=True)
-@click_buffer
 @click_overwrite
 @click.option("--load-early/--no-load-early", default=True)
 def cli(
@@ -802,7 +804,6 @@ def cli(
             output_version,
             output_location,
             tide_data_location,
-            buffer,
             log,
             load_early=load_early,
         )

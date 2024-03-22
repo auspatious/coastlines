@@ -1,7 +1,5 @@
 from pydantic import BaseModel
 
-from typing import Optional
-
 
 class Input(BaseModel):
     grid_path: str
@@ -39,7 +37,7 @@ class Options(BaseModel):
     use_combined_index: bool = False
 
     tide_centre: float = 0.0
-    load_buffer_distance: int = 1000
+    load_buffer_distance: int = 5000
 
 
 class CoastlinesConfig(BaseModel):

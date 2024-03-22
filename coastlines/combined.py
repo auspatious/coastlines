@@ -747,7 +747,6 @@ def cli(
     output_version,
     output_location,
     tide_data_location,
-    buffer,
     overwrite,
     load_early,
 ):

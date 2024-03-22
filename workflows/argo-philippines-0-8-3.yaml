@@ -27,9 +27,9 @@ spec:
       - name: result-version
         value: "0.8.3"
       - name: tiles-subset
-        value: '[\"200,221\",\"201,221\"]'  # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
+        value: '[\"200,221\",\"201,221\",\"200,220\"]'  # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
       - name: config
-        value: configs/philippines_coastlines_config.yaml
+        value: https://raw.githubusercontent.com/auspatious/dea-coastlines/stable/configs/philippines_coastlines_config.yaml
       - name: overwrite
         value: "--no-overwrite"
   templates:

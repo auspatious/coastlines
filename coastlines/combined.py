@@ -582,7 +582,7 @@ def process_coastlines(
 
     # Config shenanigans
     bbox = list(
-        geometry.to_crs(config.options.output_crs)
+        geometry.to_crs(config.output.crs)
         .buffer(config.options.load_buffer_distance)
         .to_crs("epsg:4326")
         .bounds.values[0]

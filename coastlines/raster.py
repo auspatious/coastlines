@@ -530,9 +530,7 @@ def generate_rasters(
 
     # Grid cells used to process the analysis
     gridcell_gdf = (
-        gpd.read_file(config["Input files"]["grid_path"])
-        .to_crs(epsg=4326)
-        .set_index("id")
+        gpd.read_file(config.input.grid_path).to_crs(epsg=4326).set_index("id")
     )
     gridcell_gdf.index = gridcell_gdf.index.astype(int).astype(str)
     gridcell_gdf = gridcell_gdf.loc[[str(study_area)]]

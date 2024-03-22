@@ -13,11 +13,11 @@ from coastlines.continental import generate_hotspots, wms_fields
 from coastlines.utils import (
     STYLES_FILE,
     CoastlinesException,
-    click_baseline_year,
-    click_output_location,
     click_output_version,
+    click_config_path,
     configure_logging,
     is_s3,
+    get_config,
 )
 
 
@@ -176,29 +176,35 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
 
 
 @click.command("merge-tiles")
-@click.option("--input-location", required=True, help="Input location")
-@click_output_location
+@click_config_path
 @click_output_version
-@click_baseline_year
-@click.option("--output-crs", default="EPSG:3405", help="Output CRS")
-def cli(input_location, output_location, output_version, baseline_year, output_crs):
+def cli(config_path, output_version):
+    # Set up
+    config = get_config(config_path)
     log = configure_logging()
-    log.info(f"Merging files from {input_location} to {output_location}")
+
+    log.info(f"Merging files from {config.options.output_location}")
+
+    log.info("Configuring S3")
     configure_s3_access()
+
+    log.info("Listing files")
+    input_location = f"{config.options.output_location}/{config.options.output_version}"
     files = list_files_s3(input_location, suffix=".parquet")
 
     points_files, contours_files = find_points_contours(files)
     n_contours = len(contours_files)
     n_points = len(points_files)
     log.info(f"Found {n_points} points files and {n_contours} contours files")
+
     if n_contours != n_points:
         raise CoastlinesException("Number of points and contours files must be equal")
     if n_contours == 0:
         raise CoastlinesException("No points or contours files found")
 
     log.info("Loading files into memory...")
-    rates_of_change = load_parquet_files(points_files, output_crs)
-    shorelines = load_parquet_files(contours_files, output_crs)
+    rates_of_change = load_parquet_files(points_files, config.options.output_crs)
+    shorelines = load_parquet_files(contours_files, config.options.output_crs)
 
     # Add the WMS fields to the rates of change data
     rates_of_change = pd.concat(
@@ -210,13 +216,17 @@ def cli(input_location, output_location, output_version, baseline_year, output_c
         shorelines,
         rates_of_change,
         [10000, 5000, 1000],
-        baseline_year,
+        config.options.baseline_year,
         add_wms_fields=True,
     )
 
     log.info("Writing files")
     written = write_files(
-        rates_of_change, shorelines, hotspots, output_location, output_version
+        rates_of_change,
+        shorelines,
+        hotspots,
+        config.options.output_location,
+        output_version,
     )
 
     for file in written:

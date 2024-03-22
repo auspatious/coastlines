@@ -1535,7 +1535,7 @@ def generate_vectors(
 
     # Study area polygon
     gridcell_gdf = (
-        gpd.read_file(config["Input files"]["grid_path"], bbox=bbox)
+        gpd.read_file(config.inputgrid_path, bbox=bbox)
         .set_index("id")
         .to_crs(str(yearly_ds.odc.crs))
     )
@@ -1543,14 +1543,14 @@ def generate_vectors(
     gridcell_gdf = gridcell_gdf.loc[[str(study_area)]]
 
     # Coastal mask modifications
-    modifications_gdf = gpd.read_file(
-        config["Input files"]["modifications_path"], bbox=bbox
-    ).to_crs(str(yearly_ds.odc.crs))
+    modifications_gdf = gpd.read_file(config.inputmodifications_path, bbox=bbox).to_crs(
+        str(yearly_ds.odc.crs)
+    )
 
     # Geomorphology dataset
-    geomorphology_gdf = gpd.read_file(
-        config["Input files"]["geomorphology_path"], bbox=bbox
-    ).to_crs(str(yearly_ds.odc.crs))
+    geomorphology_gdf = gpd.read_file(config.inputgeomorphology_path, bbox=bbox).to_crs(
+        str(yearly_ds.odc.crs)
+    )
 
     # Region attribute dataset
     region_gdf = gpd.read_file(

@@ -48,11 +48,15 @@ def configure_logging(name: str = "Coastlines") -> logging.Logger:
     return logger
 
 
-def load_config(config_path: str) -> dict:
+def load_config(config_path: str) -> CoastlinesConfig:
     """
-    Loads a YAML config file and returns data as a nested dictionary.
+    Load a CoastlinesConfig object from a YAML configuration file.
 
-    config_path can be a path or URL to a web accessible YAML file
+    Parameters:
+        config_path (str): The path to the YAML configuration file.
+
+    Returns:
+        CoastlinesConfig: The loaded CoastlinesConfig object.
     """
     with fsspec.open(config_path, mode="r") as f:
         loaded = safe_load(f)
@@ -69,7 +73,12 @@ def load_json(grid_path: str) -> GeoDataFrame:
 def get_study_site_geometry(grid_path: str, study_area: str) -> gpd.GeoDataFrame:
     # Grid cells used to process the analysis
     gridcell_gdf = load_json(grid_path)
-    gridcell_gdf = gridcell_gdf.loc[[study_area]]
+    try:
+        gridcell_gdf = gridcell_gdf.loc[[study_area]]
+    except KeyError as e:
+        raise CoastlinesException(
+            f"Study area {study_area} not found in grid file"
+        ) from e
 
     return gridcell_gdf
 
@@ -237,7 +246,7 @@ click_index_threshold = click.option(
 click_output_location = click.option(
     "--output-location",
     type=str,
-    default="data/processed",
+    default=None,
 )
 click_output_version = click.option(
     "--output-version",

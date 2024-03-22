@@ -1,10 +1,10 @@
 input:
-  grid_path: "data/raw/philippines_tiles.geojson"
-  modifications_path: "data/raw/empty_modifications.geojson"
+  grid_path: "https://raw.githubusercontent.com/auspatious/dea-coastlines/stable/data/raw/philippines_tiles.geojson"
+  modifications_path: "https://raw.githubusercontent.com/auspatious/dea-coastlines/stable/data/raw/empty_modifications.geojson"
   geomorphology_path: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip"
 
 output:
-  location: "data/interim/vector"
+  location: "s3://easi-asia-dc-data-projects/coastlines/ph/"
   crs: "EPSG:32751"
 
 stac:

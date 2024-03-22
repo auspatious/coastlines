@@ -23,19 +23,12 @@ from coastlines.raster import tide_cutoffs
 # from dea_tools.datahandling import parallel_apply  # Needs a PR merged
 from coastlines.utils import (
     CoastlinesException,
-    click_aws_request_payer,
-    click_aws_unsigned,
-    click_baseline_year,
     click_buffer,
     click_config_path,
-    click_end_year,
-    click_index_threshold,
     click_output_location,
     click_output_version,
     click_overwrite,
-    click_start_year,
     click_study_area,
-    click_tide_centre,
     configure_logging,
     get_study_site_geometry,
     is_s3,
@@ -575,22 +568,14 @@ def process_coastlines(
     config: dict,
     study_area: str,
     output_version: str,
-    output_location: str,
-    start_year: int,
-    end_year: int,
-    baseline_year: int,
-    tide_centre: float,
+    output_location: str | None,
     tide_data_location: str,
-    index_threshold: float,
     buffer: float,
     log: callable,
     load_early: bool = True,
-    mask_with_hillshade: bool = False,
-    mask_with_esa_wc: bool = False,
-    use_combined_index: bool = False,
 ):
     # Study site geometry and config parsing
-    geometry = get_study_site_geometry(config["Input files"]["grid_path"], study_area)
+    geometry = get_study_site_geometry(config.input.grid_path, study_area)
     log.info(f"Loaded geometry for study area {study_area}")
 
     # Config shenanigans
@@ -598,28 +583,18 @@ def process_coastlines(
     log.info(f"Using bounding box: {bbox}")
 
     # Either use the MNDWI index or the combined index
-    water_index = "mndwi"
-    if use_combined_index:
-        water_index = "combined"
-
-    log.info(f"Using water index: {water_index}")
-
-    for option in [
-        "load_early",
-        "mask_with_hillshade",
-        "mask_with_esa_wc",
-        "use_combined_index",
-    ]:
-        log.info(f"Configured with {option}: {eval(option)}")
+    log.info(f"Using water index: {config.options.water_index}")
 
     query = {
         "bbox": bbox,
-        "datetime": f"{start_year - 1}/{end_year + 1}",
+        "datetime": f"{config.options.start_year - 1}/{config.options.end_year + 1}",
     }
+
+    use_combined_index = config.options.water_index == "combined"
 
     # Loading data
     data = None
-    if config.get("STAC config") is not None:
+    if config.stac is not None:
         data, items = load_and_mask_data_with_stac(
             config,
             query,
@@ -634,7 +609,7 @@ def process_coastlines(
     # Calculate tides and combine with the data
     log.info("Filtering by tides")
     n_times = len(data.time)
-    data = filter_by_tides(data, tide_data_location, tide_centre)
+    data = filter_by_tides(data, tide_data_location, config.options.tide_centre)
     log.info(
         f"Dropped {n_times - len(data.time)} out of {n_times} timesteps due to extreme tides"
     )
@@ -644,9 +619,9 @@ def process_coastlines(
         data = data.compute()
 
     log.info("Running per-pixel tide masking at high resolution")
-    data = mask_pixels_by_tide(data, tide_data_location, tide_centre)
+    data = mask_pixels_by_tide(data, tide_data_location, config.options.tide_centre)
 
-    if mask_with_hillshade:
+    if config.options.mask_with_hillshade:
         log.info("Running per-pixel terrain shadow masking")
         try:
             data = mask_pixels_by_hillshadow(data, items)
@@ -657,9 +632,9 @@ def process_coastlines(
     log.info("Generating yearly composites")
     combined_data = generate_yearly_composites(
         data,
-        start_year,
-        end_year,
-        water_index=water_index,
+        config.options.start_year,
+        config.options.end_year,
+        water_index=config.options.water_index,
         include_nir=use_combined_index,
     )
 
@@ -672,11 +647,11 @@ def process_coastlines(
     # Load the modifications layer to add/remove areas from the analysis
     log.info("Loading vectors")
     modifications_gdf = gpd.read_file(
-        config["Input files"]["modifications_path"], bbox=bbox
+        config.input.modifications_path, bbox=bbox
     ).to_crs(str(combined_data.odc.crs))
 
-    geomorphology_url = config["Input files"].get("geomorphology_path")
-    if geomorphology_url is None:
+    geomorphology_url = config.input.geomorphology_path
+    if config.input.geomorphology_path is None:
         log.warning("Using empty geomorphology dataset")
         geomorphology_url = "data/raw/empty_modifications.geojson"
     geomorphology_gdf = gpd.read_file(
@@ -688,10 +663,10 @@ def process_coastlines(
     # Mask dataset to focus on coastal zone only
     masked_data, certainty_masks = contours_preprocess(
         combined_ds=combined_data,
-        water_index=water_index,
-        index_threshold=index_threshold,
+        water_index=config.options.water_index,
+        index_threshold=config.options.index_threshold,
         buffer_pixels=33,
-        mask_with_esa_wc=mask_with_esa_wc,
+        mask_with_esa_wc=config.options.mask_with_esa_wc,
         modifications_gdf=modifications_gdf,
         include_nir=use_combined_index,
     )
@@ -700,7 +675,7 @@ def process_coastlines(
     log.info("Extracting shorelines")
     contours = subpixel_contours(
         da=masked_data,
-        z_values=index_threshold,
+        z_values=config.options.index_threshold,
         min_vertices=10,
         dim="year",
     ).set_index("year")
@@ -712,17 +687,17 @@ def process_coastlines(
     points = extract_points_with_movements(
         combined_data,
         contours_with_certainty,
-        baseline_year,
-        start_year,
-        end_year,
-        water_index=water_index,
+        config.options.baseline_year,
+        config.options.start_year,
+        config.options.end_year,
+        water_index=config.options.water_index,
     )
 
     log.info("Calculating certainty statistics for points")
     points_with_certainty = points_certainty(
         points,
         geomorphology_gdf,
-        baseline_year=baseline_year,
+        baseline_year=config.options.baseline_year,
         rocky_query="(Preds == 'Bedrock') and (Probs > 0.75)",
         rate_of_change_threshold=200,
     )
@@ -756,48 +731,30 @@ def process_coastlines(
 @click_study_area
 @click_output_version
 @click_output_location
-@click_start_year
-@click_end_year
-@click_baseline_year
-@click_tide_centre
 @click.option("--tide-data-location", type=str, required=True)
-@click_index_threshold
 @click_buffer
-# TODO: remove aws_unsigned and request_payer... or work out how to pass them in
-@click_aws_unsigned
-@click_aws_request_payer
 @click_overwrite
 @click.option("--load-early/--no-load-early", default=True)
-@click.option("--mask-with-hillshade/--no-mask-with-hillshade", default=False)
-@click.option("--mask-with-esa-wc/--no-mask-with-esa-wc", default=False)
-@click.option("--use-combined-index/--no-use-combined-index", default=False)
 def cli(
     config_path,
     study_area,
     output_version,
     output_location,
-    start_year,
-    end_year,
-    baseline_year,
-    tide_centre,
     tide_data_location,
-    index_threshold,
     buffer,
-    aws_unsigned,
-    aws_request_payer,
     overwrite,
     load_early,
-    mask_with_hillshade,
-    mask_with_esa_wc,
-    use_combined_index,
 ):
+    # Load analysis params from config file
+    config = load_config(config_path)
+
     log = configure_logging("Coastlines")
     log.info(
-        f"Starting work on study area {study_area} for years {start_year}-{end_year}"
+        f"Starting work on study area {study_area} for years {config.options.start_year}-{config.options.end_year}"
     )
 
-    # Load analysis params from config file
-    config = load_config(config_path=config_path)
+    if output_location is None:
+        output_location = config.output.location
 
     log.info("Checking output location")
     if overwrite is False:
@@ -817,15 +774,12 @@ def cli(
             sys.exit(0)
 
     log.info("Checking configuration")
-    virtual_product = config.get("Virtual product")
-    stac_config = config.get("STAC config")
-
-    if virtual_product is not None:
+    if config.virtual_product is not None:
         raise NotImplementedError("Virtual products are not yet implemented")
-    if stac_config is None:
+    if config.stac is None:
         raise ValueError("STAC config must be provided in config file")
 
-    if aws_unsigned and aws_request_payer:
+    if config.aws.aws_unsigned and config.aws.aws_request_payer:
         raise ValueError("Cannot set both aws_unsigned and aws_request_payer to True")
 
     log.info("Starting Dask")
@@ -835,7 +789,9 @@ def cli(
     log.info("Configuring S3 access")
     # Do an opinionated configuration of S3 for data reading
     configure_s3_access(
-        cloud_defaults=True, aws_unsigned=aws_unsigned, requester_pays=aws_request_payer
+        cloud_defaults=True,
+        aws_unsigned=config.aws.aws_unsigned,
+        requester_pays=config.aws.aws_request_payer,
     )
 
     try:
@@ -845,18 +801,10 @@ def cli(
             study_area,
             output_version,
             output_location,
-            start_year,
-            end_year,
-            baseline_year,
-            tide_centre,
             tide_data_location,
-            index_threshold,
             buffer,
             log,
             load_early=load_early,
-            mask_with_hillshade=mask_with_hillshade,
-            mask_with_esa_wc=mask_with_esa_wc,
-            use_combined_index=use_combined_index,
         )
     except CoastlinesException as e:
         log.exception(f"Study area {study_area}: Failed to run process with error {e}")

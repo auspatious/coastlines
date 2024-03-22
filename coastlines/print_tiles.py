@@ -18,7 +18,7 @@ def read_tiles_subset_string(tiles_subset: str) -> list:
 @click.option("--limit", type=int, default=None, required=False)
 def cli(config_file: str, tiles_subset: str, limit: Optional[int]) -> None:
     config = load_config(config_file)
-    tiles = load_json(config["Input files"]["grid_path"])
+    tiles = load_json(config.input.grid_path)
 
     try:
         subset_list = read_tiles_subset_string(tiles_subset)

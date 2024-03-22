@@ -47,5 +47,6 @@ class CoastlinesConfig(BaseModel):
     output: Output
     options: Options
 
+    virtual_product: bool | None = None
     stac: STAC | None = None
     aws: AWS | None = None

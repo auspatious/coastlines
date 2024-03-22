@@ -189,7 +189,7 @@ def cli(config_path, output_version):
     configure_s3_access()
 
     log.info("Listing files")
-    input_location = f"{config.output.location}/{config.options.output_version}"
+    input_location = f"{config.output.location}/{output_version}"
     files = list_files_s3(input_location, suffix=".parquet")
 
     points_files, contours_files = find_points_contours(files)

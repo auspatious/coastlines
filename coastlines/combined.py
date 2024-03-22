@@ -127,8 +127,8 @@ def load_and_mask_data_with_stac(
     n_items = search.matched()
 
     # If we don't have enough T1 items, search for T2 as well
-    query_filter = {}
     if n_items < lower_limit:
+        query_filter = {}
         print("Warning, not enough T1 items found, searching for T2 items as well")
         search = client.search(
             query=query_filter,
@@ -140,10 +140,11 @@ def load_and_mask_data_with_stac(
     percentage = 100
     while n_items > upper_limit:
         percentage -= 5
+        query_filter["eo:cloud_cover"] = {"lt": percentage}
         print(
             f"Warning, too many items found ({n_items} > {upper_limit}). Pre-filtering to {percentage}% clouds"
         )
-        query_filter = {"eo:cloud_cover": {"lt": percentage}}
+
         search = client.search(
             query=query_filter,
             **query,

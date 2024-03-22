@@ -17,7 +17,7 @@ from coastlines.utils import (
     click_config_path,
     configure_logging,
     is_s3,
-    get_config,
+    load_config,
 )
 
 
@@ -180,7 +180,7 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
 @click_output_version
 def cli(config_path, output_version):
     # Set up
-    config = get_config(config_path)
+    config = load_config(config_path)
     log = configure_logging()
 
     log.info(f"Merging files from {config.options.output_location}")

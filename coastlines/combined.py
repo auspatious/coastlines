@@ -119,16 +119,19 @@ def load_and_mask_data_with_stac(
 
     # Search for STAC Items. First for only T1 then for both T1 and T2
     query["collections"] = config.stac.stac_collections
+    query_filter = {"landsat:collection_category": {"in": ["T1"]}}
     search = client.search(
-        query={"landsat:collection_category": {"in": ["T1"]}},
+        query=query_filter,
         **query,
     )
     n_items = search.matched()
 
     # If we don't have enough T1 items, search for T2 as well
+    query_filter = {}
     if n_items < lower_limit:
         print("Warning, not enough T1 items found, searching for T2 items as well")
         search = client.search(
+            query=query_filter,
             **query,
         )
         n_items = search.matched()
@@ -140,8 +143,9 @@ def load_and_mask_data_with_stac(
         print(
             f"Warning, too many items found ({n_items} > {upper_limit}). Pre-filtering to {percentage}% clouds"
         )
+        query_filter = {"eo:cloud_cover": {"lt": percentage}}
         search = client.search(
-            query={"eo:cloud_cover": {"lt": percentage}},
+            query=query_filter,
             **query,
         )
         n_items = search.matched()

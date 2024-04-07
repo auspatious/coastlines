@@ -23,11 +23,11 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.8.2-20-g79f581b"
+        value: "0.8.2-24-g5c2bc4e"
       - name: result-version
-        value: "0.8.4"
+        value: "0.8.5"
       - name: tiles-subset
-        value: '[\"200,221\",\"201,221\",\"200,220\"]'  # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
+        value: "[]" # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
       - name: config
         value: configs/philippines_coastlines_config.yaml
       - name: overwrite
@@ -36,39 +36,39 @@ spec:
     - name: coastlines-dag
       dag:
         tasks:
-        - name: generate-ids
-          template: generate
-          arguments:
-            parameters:
-              - name: config
-                value: "{{workflow.parameters.config}}"
-              - name: tiles-subset
-                value: "{{workflow.parameters.tiles-subset}}"
+          - name: generate-ids
+            template: generate
+            arguments:
+              parameters:
+                - name: config
+                  value: "{{workflow.parameters.config}}"
+                - name: tiles-subset
+                  value: "{{workflow.parameters.tiles-subset}}"
 
-        - name: process-id
-          depends: generate-ids.Succeeded
-          template: process
-          withParam: "{{tasks.generate-ids.outputs.result}}"
-          arguments:
-            parameters:
-            - name: id
-              value: "{{item}}"
-            - name: config
-              value: "{{workflow.parameters.config}}"
-            - name: result-version
-              value: "{{workflow.parameters.result-version}}"
-            - name: overwrite
-              value: "{{workflow.parameters.overwrite}}"
+          - name: process-id
+            depends: generate-ids.Succeeded
+            template: process
+            withParam: "{{tasks.generate-ids.outputs.result}}"
+            arguments:
+              parameters:
+                - name: id
+                  value: "{{item}}"
+                - name: config
+                  value: "{{workflow.parameters.config}}"
+                - name: result-version
+                  value: "{{workflow.parameters.result-version}}"
+                - name: overwrite
+                  value: "{{workflow.parameters.overwrite}}"
 
-        - name: merge
-          depends: "process-id.AnySucceeded"
-          template: merge-continental
-          arguments:
-            parameters:
-            - name: config
-              value: "{{workflow.parameters.config}}"
-            - name: result-version
-              value: "{{workflow.parameters.result-version}}"
+          - name: merge
+            depends: "process-id.AnySucceeded"
+            template: merge-continental
+            arguments:
+              parameters:
+                - name: config
+                  value: "{{workflow.parameters.config}}"
+                - name: result-version
+                  value: "{{workflow.parameters.result-version}}"
 
     - name: generate
       inputs:
@@ -77,7 +77,7 @@ spec:
           - name: tiles-subset
       container:
         image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
-        command: [ bash, -c ]
+        command: [bash, -c]
         args:
           - >-
             coastlines-print-tiles
@@ -95,7 +95,7 @@ spec:
           - name: result-version
           - name: overwrite
       retryStrategy:
-        limit: 2
+        limit: 0
         retryPolicy: Always
       container:
         image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}

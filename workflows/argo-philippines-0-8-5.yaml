@@ -139,11 +139,11 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            memory: 40Gi
-            cpu: 4.0
-          limits:
-            cpu: 4.0
             memory: 60Gi
+            cpu: 8.0
+          limits:
+            cpu: 8.0
+            memory: 80Gi
         command: [bash, -c]
         args:
           - |

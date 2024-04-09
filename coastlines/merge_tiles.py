@@ -4,8 +4,8 @@ from typing import Iterable, Union
 
 import boto3
 import click
-import geopandas as gpd
 import pandas as pd
+from geopandas import GeoDataFrame, read_file, read_parquet
 from odc.stac import configure_s3_access
 from s3path import S3Path
 
@@ -13,8 +13,8 @@ from coastlines.continental import generate_hotspots, wms_fields
 from coastlines.utils import (
     STYLES_FILE,
     CoastlinesException,
-    click_output_version,
     click_config_path,
+    click_output_version,
     configure_logging,
     is_s3,
     load_config,
@@ -54,15 +54,15 @@ def load_parquet_files(files: list[S3Path] | list[Path], output_crs: str):
         file_string = str(file)
         if is_s3:
             file_string = f"s3:/{file}"
-        df = gpd.read_parquet(file_string).to_crs(output_crs)
+        df = read_parquet(file_string).to_crs(output_crs)
         data_frames.append(df)
 
-    return gpd.GeoDataFrame(pd.concat(data_frames), geometry="geometry")
+    return GeoDataFrame(pd.concat(data_frames), geometry="geometry")
 
 
 def munge_data(
-    rates_of_change: gpd.GeoDataFrame, shorelines: gpd.GeoDataFrame
-) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
+    rates_of_change: GeoDataFrame, shorelines: GeoDataFrame
+) -> tuple[GeoDataFrame, GeoDataFrame]:
     # Add a certainty column to shorelinres
     shorelines["certainty"] = "good"
     rates_of_change["certainty"] = "good"
@@ -87,19 +87,28 @@ def get_output_path(
     return output_path
 
 
-def write_files(rates_of_change, shorelines, hotspots, output_location, output_version):
+def write_files(
+    rates_of_change: GeoDataFrame,
+    shorelines: GeoDataFrame,
+    hotspots: GeoDataFrame,
+    output_location: str,
+    output_version: str,
+    write_parquet: bool = False,
+) -> list[str]:
     # Destination files
-    output_shorelines = get_output_path(
-        output_location, output_version, "shorelines_annual", "parquet"
-    )
-    output_rates_of_change = get_output_path(
-        output_location, output_version, "rates_of_change", "parquet"
-    )
     output_geopackage = get_output_path(
         output_location, output_version, "coastlines", "gpkg"
     )
 
-    write_to_s3 = is_s3(output_shorelines)
+    if write_parquet:
+        output_shorelines = get_output_path(
+            output_location, output_version, "shorelines_annual", "parquet"
+        )
+        output_rates_of_change = get_output_path(
+            output_location, output_version, "rates_of_change", "parquet"
+        )
+
+    write_to_s3 = is_s3(output_geopackage)
     written = []
 
     if write_to_s3:
@@ -107,38 +116,42 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
         output_rates_of_change = f"s3:/{output_rates_of_change}"
     else:
         # Need to clean up existing files maybe
-        if output_shorelines.exists():
-            output_shorelines.unlink()
-        if output_rates_of_change.exists():
-            output_rates_of_change.unlink()
         if output_geopackage.exists():
             output_geopackage.unlink()
+        if write_parquet:
+            if output_shorelines.exists():
+                output_shorelines.unlink()
+            if output_rates_of_change.exists():
+                output_rates_of_change.unlink()
+
         # And check the parent directory exists
         output_shorelines.parent.mkdir(parents=True, exist_ok=True)
 
     # Write parquet
-    shorelines.to_parquet(output_shorelines)
-    rates_of_change.to_parquet(output_rates_of_change)
+    if write_parquet:
+        # Shorelines and rate of change writing
+        shorelines.to_parquet(output_shorelines)
+        rates_of_change.to_parquet(output_rates_of_change)
 
-    written.append(output_shorelines)
-    written.append(output_rates_of_change)
+        written.append(output_shorelines)
+        written.append(output_rates_of_change)
 
-    # Hotspot writing
-    for i, hotspot in enumerate(hotspots):
-        output_hotspot = get_output_path(
-            output_location,
-            output_version,
-            f"hotspots_{output_version}_zoom_{i + 1}",
-            "parquet",
-        )
-        if write_to_s3:
-            output_hotspot = f"s3:/{output_hotspot}"
-        else:
-            if output_hotspot.exists():
-                output_hotspot.unlink()
-        hotspot.to_parquet(output_hotspot)
+        # Hotspot writing
+        for i, hotspot in enumerate(hotspots):
+            output_hotspot = get_output_path(
+                output_location,
+                output_version,
+                f"hotspots_{output_version}_zoom_{i + 1}",
+                "parquet",
+            )
+            if write_to_s3:
+                output_hotspot = f"s3:/{output_hotspot}"
+            else:
+                if output_hotspot.exists():
+                    output_hotspot.unlink()
+            hotspot.to_parquet(output_hotspot)
 
-        written.append(output_hotspot)
+            written.append(output_hotspot)
 
     # Write geopackage
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -155,7 +168,7 @@ def write_files(rates_of_change, shorelines, hotspots, output_location, output_v
             )
 
         # Handy built-in styles
-        styles = gpd.read_file(
+        styles = read_file(
             STYLES_FILE, KEEP_GEOM_COLUMNS=False, GEOM_POSSIBLE_NAMES="geometry"
         )
         styles.to_file(temp_geopackage, layer="layer_styles", driver="GPKG")

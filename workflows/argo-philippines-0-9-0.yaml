@@ -25,11 +25,11 @@ spec:
       - name: image-tag
         value: "0.9.0"
       - name: result-version
-        value: "0.9.0b2"
+        value: "0.9.1"
       - name: tiles-subset
         value: '[\"206,241\",\"207,241\",\"208,241\",\"206,240\",\"207,240\",\"208,240\",\"208,239\"]' # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
       - name: config
-        value: https://raw.githubusercontent.com/auspatious/dea-coastlines/tweak-ph-config/configs/philippines_coastlines_newindex_config.yaml
+        value: configs/philippines_coastlines_newindex_config.yaml
       - name: overwrite
         value: "--no-overwrite"
   templates:

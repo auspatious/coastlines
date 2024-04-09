@@ -118,14 +118,14 @@ def write_files(
         # Need to clean up existing files maybe
         if output_geopackage.exists():
             output_geopackage.unlink()
+
         if write_parquet:
             if output_shorelines.exists():
                 output_shorelines.unlink()
             if output_rates_of_change.exists():
                 output_rates_of_change.unlink()
-
-        # And check the parent directory exists
-        output_shorelines.parent.mkdir(parents=True, exist_ok=True)
+            # And check the parent directory exists
+            output_shorelines.parent.mkdir(parents=True, exist_ok=True)
 
     # Write parquet
     if write_parquet:

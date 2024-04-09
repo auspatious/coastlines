@@ -20,7 +20,7 @@ options:
   baseline_year: 2021
 
   water_index: "mndwi_nir"
-  index_threshold: 0.6
+  index_threshold: 0.7
 
   mask_with_hillshade: True
   mask_with_esa_wc: True

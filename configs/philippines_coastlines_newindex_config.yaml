@@ -1,29 +1,29 @@
 input:
-  grid_path: "data/raw/philippines_tiles.geojson"
-  modifications_path: "data/raw/empty_modifications.geojson"
+  grid_path: "https://raw.githubusercontent.com/auspatious/dea-coastlines/stable/data/raw/philippines_tiles.geojson"
+  modifications_path: "https://raw.githubusercontent.com/auspatious/dea-coastlines/stable/data/raw/empty_modifications.geojson"
   geomorphology_path: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip"
 
 output:
-  location: "data/interim/vector"
+  location: "s3://easi-asia-dc-data-projects/coastlines/ph/"
   crs: "EPSG:32651"
 
 stac:
   stac_api_url: "https://landsatlook.usgs.gov/stac-server"
-  stac_collections:
+  stac_collections: 
     - "landsat-c2l2-sr"
   lower_scene_limit: 250
   upper_scene_limit: 2000
 
 options:
-  start_year: 2003
+  start_year: 1985
   end_year: 2023
   baseline_year: 2021
 
-  water_index: "combined"
+  water_index: "mndwi_nir"
+  index_threshold: 0.75
 
   mask_with_hillshade: True
   mask_with_esa_wc: True
-  use_combined_index: True
 
   load_buffer_distance: 5000
 

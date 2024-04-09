@@ -31,6 +31,7 @@ class Options(BaseModel):
 
     water_index: str = "mndwi"
     index_threshold: float = 0.0
+    include_nir: bool = True
 
     mask_with_hillshade: bool = True
     mask_with_esa_wc: bool = True

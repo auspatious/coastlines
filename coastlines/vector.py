@@ -779,7 +779,8 @@ def contours_preprocess(
         # Mask out inland regions (i.e. values of 2 in `coastal_mask`)
         .where(coastal_mask != 2)
         # Keep pixels directly connected to ocean in each timestep
-        .groupby("year").map(
+        .groupby("year")
+        .map(
             func=ocean_masking,
             ocean_da=ocean_da,
             connectivity=1,

@@ -4,8 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Tuple, Union
 
-from coastlines.config import CoastlinesConfig
-
 import click
 import geopandas as gpd
 import xarray as xr
@@ -18,6 +16,7 @@ from pystac import ItemCollection
 from pystac_client import Client
 from s3path import S3Path
 
+from coastlines.config import CoastlinesConfig
 from coastlines.raster import tide_cutoffs
 
 # from dea_tools.datahandling import parallel_apply  # Needs a PR merged
@@ -109,11 +108,16 @@ def load_and_mask_data_with_stac(
     include_nir: bool = False,
     include_awei: bool = False,
     include_wi: bool = False,
-    optimise_combined: bool = True,
     debug: bool = False,
 ) -> xr.Dataset:
     lower_limit = config.stac.lower_scene_limit
     upper_limit = config.stac.upper_scene_limit
+    index = config.options.water_index
+
+    if index not in ["mndwi", "ndwi", "combined", "mndwi_nir"]:
+        raise CoastlinesException(
+            f"Unknown water index: {index}. Must be one of 'mndwi', 'ndwi', 'combined' or 'mndwi_nir'"
+        )
 
     client = Client.open(config.stac.stac_api_url)
 
@@ -211,7 +215,7 @@ def load_and_mask_data_with_stac(
     ds["green"] = to_f32(ds["green"], scale=0.0000275, offset=-0.2)
     ds["swir16"] = to_f32(ds["swir16"], scale=0.0000275, offset=-0.2)
 
-    if include_nir:
+    if include_nir or index in ["ndwi", "combined", "mndwi_nir"]:
         ds["nir08"] = to_f32(ds["nir08"], scale=0.0000275, offset=-0.2)
 
     if include_awei:
@@ -227,12 +231,21 @@ def load_and_mask_data_with_stac(
     )
 
     # Create MNDWI
-    ds["mndwi"] = (ds["green"] - ds["swir16"]) / (ds["green"] + ds["swir16"])
+    if index == "mndwi" or index == "combined":
+        ds["mndwi"] = (ds["green"] - ds["swir16"]) / (ds["green"] + ds["swir16"])
 
     # Create NDWI
-    if include_nir:
+    if index == "ndwi" or index == "combined":
         ds["ndwi"] = (ds["green"] - ds["nir08"]) / (ds["green"] + ds["nir08"])
+
+    if index == "combined":
         ds["combined"] = (ds["mndwi"] + ds["ndwi"]) / 2
+
+    # Create new modified MNDWI index
+    if index == "mndwi_nir":
+        scaled_green = (ds["green"] + (1 - ds["nir08"])) / 2
+        scaled_swir1 = (ds["swir16"] + ds["nir08"]) / 2
+        ds["mndwi_nir"] = (scaled_green - scaled_swir1) / (scaled_green + scaled_swir1)
 
     # Create AWEI
     if include_awei:
@@ -261,21 +274,13 @@ def load_and_mask_data_with_stac(
     final_mask = nodata_mask | dilated_cloud_mask | invalid_ard_values
     ds = ds.where(~final_mask)
 
-    # Delete unneeded data
+    # If we're not debugging, just return the necessary bands
     if not debug:
-        del ds["green"]
-        del ds["swir16"]
-        del ds["qa_pixel"]
+        return_bands = [index]
+        if include_nir:
+            return_bands.append("nir08")
 
-        if include_awei:
-            del ds["swir22"]
-            del ds["blue"]
-            del ds["red"]
-
-    # Optimising for the combined index
-    if optimise_combined:
-        ds = ds.drop_vars(["mndwi", "ndwi"])
-        # We keep the 'combined' index, and also the 'nir' band
+        ds = ds[return_bands]
 
     return ds, items
 
@@ -382,7 +387,11 @@ def filter_by_tides(
 
 
 def get_one_year_composite(
-    ds: xr.Dataset, year: int, water_index: str = "mndwi", include_nir: bool = False
+    ds: xr.Dataset,
+    year: int,
+    water_index: str = "mndwi",
+    include_nir: bool = False,
+    debug: bool = False,
 ) -> Tuple[int, xr.Dataset]:
     one_year = ds.sel(time=str(year))
     three_years = ds.sel(time=slice(str(year - 1), str(year + 1)))
@@ -393,16 +402,30 @@ def get_one_year_composite(
     year_summary["count"] = one_year[water_index].count(dim="time")
     year_summary["stdev"] = one_year[water_index].std(dim="time")
 
-    if include_nir:
-        year_summary["nir"] = one_year.nir08.median(dim="time")
-
     # And a gapfill summary for the three years
     year_summary[f"gapfill_{water_index}"] = three_years[water_index].median(dim="time")
     year_summary["gapfill_count"] = three_years[water_index].count(dim="time")
     year_summary["gapfill_stdev"] = three_years[water_index].std(dim="time")
 
+    # Optional extras
     if include_nir:
+        year_summary["nir"] = one_year.nir08.median(dim="time")
         year_summary["gapfill_nir"] = three_years.nir08.median(dim="time")
+
+    if debug:
+        year_summary["green"] = one_year.green.median(dim="time")
+        year_summary["swir"] = one_year.swir16.median(dim="time")
+
+        year_summary["gapfill_green"] = three_years.green.median(dim="time")
+        year_summary["gapfill_swir"] = three_years.swir16.median(dim="time")
+
+        # Get raw mndwi and ndwi values too
+        year_summary["mndwi"] = one_year.mndwi.median(dim="time")
+        year_summary["gapfill_mndwi"] = three_years.mndwi.median(dim="time")
+
+        if include_nir:
+            year_summary["ndwi"] = one_year.ndwi.median(dim="time")
+            year_summary["gapfill_ndwi"] = three_years.ndwi.median(dim="time")
 
     return year, year_summary
 
@@ -428,7 +451,11 @@ def generate_yearly_composites(
     def process_year(year):
         try:
             year, year_summary = get_one_year_composite(
-                ds, year, water_index=water_index, include_nir=include_nir
+                ds,
+                year,
+                water_index=water_index,
+                include_nir=include_nir,
+                debug=debug,
             )
             return year, year_summary
         except KeyError:
@@ -598,16 +625,13 @@ def process_coastlines(
         "datetime": f"{config.options.start_year - 1}/{config.options.end_year + 1}",
     }
 
-    use_combined_index = config.options.water_index == "combined"
-
     # Loading data
     data = None
     if config.stac is not None:
         data, items = load_and_mask_data_with_stac(
             config,
             query,
-            include_nir=use_combined_index,
-            optimise_combined=use_combined_index,
+            include_nir=config.options.include_nir,
         )
 
         log.info(f"Found {len(items)} items to load.")
@@ -643,7 +667,7 @@ def process_coastlines(
         config.options.start_year,
         config.options.end_year,
         water_index=config.options.water_index,
-        include_nir=use_combined_index,
+        include_nir=config.options.include_nir,
     )
 
     if not load_early:
@@ -676,7 +700,7 @@ def process_coastlines(
         buffer_pixels=33,
         mask_with_esa_wc=config.options.mask_with_esa_wc,
         modifications_gdf=modifications_gdf,
-        include_nir=use_combined_index,
+        include_nir=config.options.include_nir,
     )
 
     # Extract shorelines

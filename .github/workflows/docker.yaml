@@ -23,12 +23,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: psf/black@stable
+      - uses: chartboost/ruff-action@v1
         with:
-          options: "--check --verbose"
           src: "./coastlines"
-          jupyter: true
-          version: "~= 24.0"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

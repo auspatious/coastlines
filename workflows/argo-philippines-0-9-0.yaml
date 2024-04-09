@@ -1,0 +1,152 @@
+---
+kind: Workflow
+metadata:
+  generateName: philippines-coastlines-
+  namespace: cenv-coastlines-argo
+spec:
+  serviceAccountName: cenv-coastlines-team-sa-argo
+  entrypoint: coastlines-dag
+  parallelism: 50
+  podGC:
+    strategy: OnPodSuccess
+    deleteDelayDuration: 120s
+  nodeSelector:
+    nodegroup: data_pipelines
+  tolerations:
+    - key: easi.csiro.au/dedicated
+      operator: Equal
+      effect: NoSchedule
+      value: data_pipelines
+  workflowMetadata:
+    labels:
+      app: philippines-coastlines
+  arguments:
+    parameters:
+      - name: image-tag
+        value: "0.9.0"
+      - name: result-version
+        value: "0.9.0b2"
+      - name: tiles-subset
+        value: '[\"206,241\",\"207,241\",\"208,241\",\"206,240\",\"207,240\",\"208,240\",\"208,239\"]' # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
+      - name: config
+        value: https://raw.githubusercontent.com/auspatious/dea-coastlines/tweak-ph-config/configs/philippines_coastlines_newindex_config.yaml
+      - name: overwrite
+        value: "--no-overwrite"
+  templates:
+    - name: coastlines-dag
+      dag:
+        tasks:
+          - name: generate-ids
+            template: generate
+            arguments:
+              parameters:
+                - name: config
+                  value: "{{workflow.parameters.config}}"
+                - name: tiles-subset
+                  value: "{{workflow.parameters.tiles-subset}}"
+
+          - name: process-id
+            depends: generate-ids.Succeeded
+            template: process
+            withParam: "{{tasks.generate-ids.outputs.result}}"
+            arguments:
+              parameters:
+                - name: id
+                  value: "{{item}}"
+                - name: config
+                  value: "{{workflow.parameters.config}}"
+                - name: result-version
+                  value: "{{workflow.parameters.result-version}}"
+                - name: overwrite
+                  value: "{{workflow.parameters.overwrite}}"
+
+          - name: merge
+            depends: "process-id.AnySucceeded"
+            template: merge-continental
+            arguments:
+              parameters:
+                - name: config
+                  value: "{{workflow.parameters.config}}"
+                - name: result-version
+                  value: "{{workflow.parameters.result-version}}"
+
+    - name: generate
+      inputs:
+        parameters:
+          - name: config
+          - name: tiles-subset
+      container:
+        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
+        command: [bash, -c]
+        args:
+          - >-
+            coastlines-print-tiles
+            --config-file {{inputs.parameters.config}}
+            --tiles-subset "{{inputs.parameters.tiles-subset}}"
+
+    - name: process
+      metadata:
+        labels:
+          app: "argo-coastlines-process-{{workflow.name}}"
+      inputs:
+        parameters:
+          - name: id
+          - name: config
+          - name: result-version
+          - name: overwrite
+      retryStrategy:
+        limit: 0
+        retryPolicy: Always
+      container:
+        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: 220Gi
+            cpu: 12.0
+          limits:
+            cpu: 16.0
+            memory: 240Gi
+        command: [bash, -c]
+        args:
+          - |
+            set -xe
+
+            echo "Downloading tide model"
+            wget -qq https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/tide_models_vn_ph.zip \
+              -O /tmp/tide_models.zip && \
+            unzip -qq /tmp/tide_models.zip -d /tmp/tide_models_temp &&
+            mv /tmp/tide_models_temp/tide_models_clipped /tmp/tide_models
+
+            echo "Running coastlines"
+            coastlines-combined \
+              --config-path={{inputs.parameters.config}} \
+              --study-area={{inputs.parameters.id}} \
+              --tide-data-location="/tmp/tide_models/" \
+              --output-version={{inputs.parameters.result-version}} \
+              {{inputs.parameters.overwrite}}
+
+    - name: merge-continental
+      metadata:
+        labels:
+          app: "argo-coastlines-merge-{{workflow.name}}"
+      inputs:
+        parameters:
+          - name: config
+          - name: result-version
+      container:
+        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: 60Gi
+            cpu: 8.0
+          limits:
+            cpu: 8.0
+            memory: 80Gi
+        command: [bash, -c]
+        args:
+          - |
+            coastlines-merge \
+              --config-path={{inputs.parameters.config}} \
+              --output-version={{inputs.parameters.result-version}}

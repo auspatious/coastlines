@@ -100,6 +100,10 @@ def write_files(
         output_location, output_version, "coastlines", "gpkg"
     )
 
+    write_to_s3 = is_s3(output_geopackage)
+    written = []
+
+    # Write the parquet files
     if write_parquet:
         output_shorelines = get_output_path(
             output_location, output_version, "shorelines_annual", "parquet"
@@ -108,18 +112,14 @@ def write_files(
             output_location, output_version, "rates_of_change", "parquet"
         )
 
-    write_to_s3 = is_s3(output_geopackage)
-    written = []
+        if write_to_s3:
+            output_shorelines = f"s3:/{output_shorelines}"
+            output_rates_of_change = f"s3:/{output_rates_of_change}"
+        else:
+            # Need to clean up existing files maybe
+            if output_geopackage.exists():
+                output_geopackage.unlink()
 
-    if write_to_s3:
-        output_shorelines = f"s3:/{output_shorelines}"
-        output_rates_of_change = f"s3:/{output_rates_of_change}"
-    else:
-        # Need to clean up existing files maybe
-        if output_geopackage.exists():
-            output_geopackage.unlink()
-
-        if write_parquet:
             if output_shorelines.exists():
                 output_shorelines.unlink()
             if output_rates_of_change.exists():
@@ -127,8 +127,6 @@ def write_files(
             # And check the parent directory exists
             output_shorelines.parent.mkdir(parents=True, exist_ok=True)
 
-    # Write parquet
-    if write_parquet:
         # Shorelines and rate of change writing
         shorelines.to_parquet(output_shorelines)
         rates_of_change.to_parquet(output_rates_of_change)

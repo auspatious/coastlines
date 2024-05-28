@@ -9,7 +9,7 @@ output:
 
 stac:
   stac_api_url: "https://landsatlook.usgs.gov/stac-server"
-  stac_collections: 
+  stac_collections:
     - "landsat-c2l2-sr"
   lower_scene_limit: 250
   upper_scene_limit: 2000
@@ -19,11 +19,11 @@ options:
   end_year: 2023
   baseline_year: 2021
 
-  water_index: "combined"
+  water_index: "mndwi_nir"
+  index_threshold: 0.65
 
   mask_with_hillshade: True
   mask_with_esa_wc: True
-  use_combined_index: True
 
   load_buffer_distance: 5000
 

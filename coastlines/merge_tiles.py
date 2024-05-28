@@ -9,15 +9,16 @@ from geopandas import GeoDataFrame, read_file, read_parquet
 from odc.stac import configure_s3_access
 from s3path import S3Path
 
-from coastlines.continental import generate_hotspots, wms_fields
 from coastlines.utils import (
     STYLES_FILE,
     CoastlinesException,
     click_config_path,
     click_output_version,
     configure_logging,
+    generate_hotspots,
     is_s3,
     load_config,
+    wms_fields,
 )
 
 
@@ -245,4 +246,6 @@ def cli(config_path, output_version):
 
 
 if __name__ == "__main__":
+    cli()
+    cli()
     cli()

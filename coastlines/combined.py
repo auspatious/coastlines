@@ -9,7 +9,7 @@ import geopandas as gpd
 import xarray as xr
 from datacube.utils.dask import start_local_dask
 from dea_tools.coastal import pixel_tides
-from dea_tools.spatial import hillshade
+from dea_tools.spatial import hillshade, subpixel_contours
 from odc.algo import mask_cleanup, to_f32
 from odc.stac import configure_s3_access, load
 from pystac import ItemCollection
@@ -17,7 +17,6 @@ from pystac_client import Client
 from s3path import S3Path
 
 from coastlines.config import CoastlinesConfig
-from coastlines.raster import tide_cutoffs
 
 # from dea_tools.datahandling import parallel_apply  # Needs a PR merged
 from coastlines.utils import (
@@ -32,6 +31,7 @@ from coastlines.utils import (
     is_s3,
     load_config,
     parallel_apply,
+    tide_cutoffs,
 )
 from coastlines.vector import (
     all_time_stats,
@@ -41,7 +41,6 @@ from coastlines.vector import (
     contours_preprocess,
     points_certainty,
     points_on_line,
-    subpixel_contours,
 )
 
 # TODO: work out how to pass this in...

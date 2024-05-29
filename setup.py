@@ -21,6 +21,7 @@ extras = {
 REQUIRED = [
     "aiohttp",
     "affine",
+    "bokeh",
     "botocore",
     "click",
     "datacube[s3,performance]",
@@ -28,8 +29,9 @@ REQUIRED = [
     "Fiona",
     "geopandas",
     "matplotlib",
+    "mapclassify",
     "numpy",
-    "odc-geo",
+    "odc-geo>=0.4.5",
     "odc_ui",
     "pandas",
     "pyarrow",

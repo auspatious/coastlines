@@ -47,7 +47,7 @@ REQUIRED = [
     "scipy",
     "setuptools",
     "Shapely",
-    "tqdm",
+    "tqdm>=4.66.3",
     "xarray",
     "pyyaml",
 ]

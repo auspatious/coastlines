@@ -8,7 +8,7 @@ on:
   pull_request:
   push:
     branches:
-      - stable
+      - main
   release:
     types:
       - created

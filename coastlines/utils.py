@@ -1,4 +1,3 @@
-from yaml import safe_load
 import logging
 from pathlib import Path
 from typing import Union
@@ -6,15 +5,16 @@ from typing import Union
 import click
 import fsspec
 import geopandas as gpd
+import pandas as pd
 from geopandas import GeoDataFrame
 from odc.stac import load
 from planetary_computer import sign_url
 from pystac_client import Client
 from s3path import S3Path
 from xarray import Dataset
+from yaml import safe_load
 
 from coastlines.config import CoastlinesConfig
-
 
 STYLES_FILE = Path(__file__).parent / "styles.csv"
 
@@ -115,7 +115,7 @@ def get_esa_water(combined_ds: Dataset):
 
 def parallel_apply(ds, dim, func, use_threads=False, *args, **kwargs):
     """
-    Temporarily copied until this PR is merged:
+    Temporarily copied until this PR is merged and a new release made:
     https://github.com/GeoscienceAustralia/dea-notebooks/pull/1171
     """
 
@@ -142,6 +142,97 @@ def parallel_apply(ds, dim, func, use_threads=False, *args, **kwargs):
 
     # Combine to match the original dataset
     return xr.concat(out_list, dim=ds[dim])
+
+
+def tide_cutoffs(
+    ds, tides_lowres, tide_centre=0.0, resampling="bilinear", reproject=True
+):
+    """
+    Based on the entire time-series of tide heights, compute the max
+    and min satellite-observed tide height for each pixel, then
+    calculate tide cutoffs used to restrict our data to satellite
+    observations centred over mid-tide (0 m Above Mean Sea Level).
+
+    These tide cutoffs are spatially interpolated into the extent of
+    the input satellite imagery so they can be used to mask out low
+    and high tide satellite pixels.
+
+    Parameters:
+    -----------
+    ds : xarray.Dataset
+        An `xarray.Dataset` containing a time series of water index
+        data (e.g. MNDWI) for the provided datacube query. This is
+        used to define the spatial extents into which tide height
+        cutoffs will be interpolated.
+    tides_lowres : xarray.Dataset
+        A low-res `xarray.Dataset` containing tide heights for each
+        timestep in `ds`, as produced by the `pixel_tides` function.
+    tide_centre : float, optional
+        The central tide height used to compute the min and max
+        tide height cutoffs. Tide heights will be masked so all
+        satellite observations are approximately centred over this
+        value. The default is 0.0 which represents 0 m Above Mean
+        Sea Level.
+    resampling : string, optional
+        The resampling method used when reprojecting low resolution
+        tides to higher resolution. Defaults to "bilinear".
+
+    Returns:
+    --------
+    tide_cutoff_min, tide_cutoff_max : xarray.DataArray
+        2D arrays containing tide height cutoff values interpolated
+        into the extent of `ds`.
+    """
+
+    # Calculate min and max tides
+    tide_min = tides_lowres.min(dim="time")
+    tide_max = tides_lowres.max(dim="time")
+
+    # Identify cutoffs
+    tide_cutoff_buffer = (tide_max - tide_min) * 0.25
+    tide_cutoff_min = tide_centre - tide_cutoff_buffer
+    tide_cutoff_max = tide_centre + tide_cutoff_buffer
+
+    # Reproject into original geobox
+    if reproject:
+        tide_cutoff_min = tide_cutoff_min.odc.reproject(
+            ds.odc.geobox, resampling=resampling
+        )
+        tide_cutoff_max = tide_cutoff_max.odc.reproject(
+            ds.odc.geobox, resampling=resampling
+        )
+
+    return tide_cutoff_min, tide_cutoff_max
+
+
+def wms_fields(gdf):
+    """
+    Calculates several addition fields required
+    for the WMS/TerriaJS Coastlines visualisation.
+
+    Parameters:
+    -----------
+    gdf : geopandas.GeoDataFrame
+        The input rate of change points vector dataset.
+
+    Returns:
+    --------
+    A `pandas.DataFrame` containing additional fields
+    with a "wms_*" prefix.
+    """
+
+    wms_fields = pd.DataFrame(
+        dict(
+            wms_abs=gdf.rate_time.abs(),
+            wms_conf=gdf.se_time * 1.96,
+            wms_grew=gdf.rate_time < 0,
+            wms_retr=gdf.rate_time > 0,
+            wms_sig=gdf.sig_time <= 0.01,
+            wms_good=gdf.certainty == "good",
+        )
+    )
+
+    return wms_fields
 
 
 click_config_path = click.option(

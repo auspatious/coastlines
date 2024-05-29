@@ -12,20 +12,16 @@
 #       using linear regression
 
 import glob
-import os
-import sys
 import warnings
 from typing import Union
 
-import click
-import geohash as gh
+import geohash
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pyproj
 import xarray as xr
-from datacube.utils.aws import configure_s3_access
-from dea_tools.spatial import subpixel_contours, xr_rasterize, xr_vectorize
+from dea_tools.spatial import xr_rasterize, xr_vectorize
 from geopandas import GeoDataFrame
 from odc.algo import mask_cleanup
 from rasterio.features import sieve
@@ -41,17 +37,7 @@ from skimage.morphology import (
 )
 from sqlalchemy.exc import OperationalError  # noqa
 
-from coastlines.utils import (
-    CoastlinesException,
-    click_baseline_year,
-    click_config_path,
-    click_end_year,
-    click_index_threshold,
-    click_start_year,
-    configure_logging,
-    get_esa_water,
-    load_config,
-)
+from coastlines.utils import CoastlinesException, get_esa_water, wms_fields
 
 # Hide specific warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -571,15 +557,15 @@ def points_certainty(
     ] = f"extreme value (> {rate_of_change_threshold} m)"
 
     # Flag points where change does not fall on a line
-    points_gdf.loc[points_gdf.angle_std > angle_threshold, "certainty"] = (
-        "high angular variability"
-    )
+    points_gdf.loc[
+        points_gdf.angle_std > angle_threshold, "certainty"
+    ] = "high angular variability"
 
     # Flag shorelines with less than X valid shorelines
     valid_obs_thresh = int(points_gdf.columns.str.contains("dist_").sum() * 0.75)
-    points_gdf.loc[points_gdf.valid_obs < valid_obs_thresh, "certainty"] = (
-        "insufficient observations"
-    )
+    points_gdf.loc[
+        points_gdf.valid_obs < valid_obs_thresh, "certainty"
+    ] = "insufficient observations"
 
     return points_gdf
 
@@ -1222,9 +1208,9 @@ def calculate_regressions(points_gdf):
         ),
         axis=1,
     )
-    points_gdf[["rate_time", "incpt_time", "sig_time", "se_time", "outl_time"]] = (
-        rate_out
-    )
+    points_gdf[
+        ["rate_time", "incpt_time", "sig_time", "se_time", "outl_time"]
+    ] = rate_out
 
     # Copy slope and intercept into points_subset so they can be
     # used to temporally de-trend annual distances
@@ -1492,377 +1478,89 @@ def vector_schema(gdf, default="float:8.2"):
     }
 
 
-def generate_vectors(
-    config,
-    study_area,
-    raster_version,
-    vector_version,
-    water_index,
-    index_threshold,
-    start_year,
-    end_year,
+def generate_hotspots(
+    shorelines_gdf,
+    ratesofchange_gdf,
+    hotspots_radii,
     baseline_year,
-    log=None,
+    add_wms_fields=False,
 ):
-    ###############################
-    # Load DEA Coastlines rasters #
-    ###############################
+    hotspots = []
 
-    if log is not None:
-        log = configure_logging()
-
-    log.info(f"Study area {study_area}: Starting vector generation")
-
-    yearly_ds, gapfill_ds = load_rasters(
-        path="data/interim/raster",
-        raster_version=raster_version,
-        study_area=study_area,
-        water_index=water_index,
-        start_year=start_year,
-        end_year=end_year,
-    )
-    log.info(f"Study area {study_area}: Loaded rasters")
-
-    # Create output vector folder using supplied vector version string;
-    output_dir = f"data/interim/vector/{vector_version}/{study_area}_{vector_version}"
-    os.makedirs(output_dir, exist_ok=True)
-
-    ####################
-    # Load vector data #
-    ####################
-
-    # Get bounding box to load data for
-    bbox = gpd.GeoSeries(yearly_ds.odc.geobox.extent.geom, crs=yearly_ds.odc.crs)
-
-    # Study area polygon
-    gridcell_gdf = (
-        gpd.read_file(config.inputgrid_path, bbox=bbox)
-        .set_index("id")
-        .to_crs(str(yearly_ds.odc.crs))
-    )
-    gridcell_gdf.index = gridcell_gdf.index.astype(int).astype(str)
-    gridcell_gdf = gridcell_gdf.loc[[str(study_area)]]
-
-    # Coastal mask modifications
-    modifications_gdf = gpd.read_file(config.inputmodifications_path, bbox=bbox).to_crs(
-        str(yearly_ds.odc.crs)
-    )
-
-    # Geomorphology dataset
-    geomorphology_gdf = gpd.read_file(config.inputgeomorphology_path, bbox=bbox).to_crs(
-        str(yearly_ds.odc.crs)
-    )
-
-    # Region attribute dataset
-    region_gdf = gpd.read_file(
-        config["Input files"]["region_attributes_path"], bbox=bbox
-    ).to_crs(str(yearly_ds.odc.crs))
-
-    ##############################
-    # Extract shoreline contours #
-    ##############################
-
-    # Mask dataset to focus on coastal zone only
-    masked_ds, certainty_masks = contours_preprocess(
-        yearly_ds,
-        gapfill_ds,
-        water_index,
-        index_threshold,
-        buffer_pixels=33,
-        mask_modifications=modifications_gdf,
-    )
-
-    # Extract annual shorelines
-    contours_gdf = subpixel_contours(
-        da=masked_ds,
-        z_values=index_threshold,
-        min_vertices=10,
-        dim="year",
-    ).set_index("year")
-
-    if len(contours_gdf.index) == 0:
-        raise ValueError(
-            f"Study area {study_area}: Unable to extract any valid shorelines from raster data"
+    for radius in hotspots_radii:
+        # Extract hotspot points
+        hotspots_gdf = points_on_line(
+            shorelines_gdf,
+            index=baseline_year,
+            distance=int(radius / 2),
         )
 
-    log.info(f"Study area {study_area}: Extracted shorelines from raster data")
+        # Create polygon windows by buffering points
+        buffered_gdf = hotspots_gdf[["geometry"]].copy()
+        buffered_gdf["geometry"] = buffered_gdf.buffer(radius)
 
-    ######################
-    # Compute statistics #
-    ######################
-
-    # Extract statistics modelling points along baseline shoreline
-    try:
-        points_gdf = points_on_line(contours_gdf, str(baseline_year), distance=30)
-        log.info(f"Study area {study_area}: Extracted rates of change points")
-
-    except KeyError:
-        log.warning(
-            f"Study area {study_area}: Baseline year {baseline_year} missing from annual shorelines; unable to extract rates of change points"
-        )
-        points_gdf = None
-
-    # If any points exist in the dataset
-    if points_gdf is not None and len(points_gdf) > 0:
-        # Calculate annual coastline movements and residual tide heights
-        # for every contour compared to the baseline year
-        points_gdf = annual_movements(
-            points_gdf,
-            contours_gdf,
-            yearly_ds,
-            str(baseline_year),
-            water_index,
-            max_valid_dist=1200,
-        )
-
-        # Reindex to add any missing annual columns to the dataset
-        points_gdf = points_gdf.reindex(
-            columns=[
-                "geometry",
-                *[f"dist_{i}" for i in range(start_year, end_year + 1)],
-                "angle_mean",
-                "angle_std",
+        # Spatial join rate of change points to each polygon
+        hotspot_grouped = (
+            ratesofchange_gdf.loc[
+                ratesofchange_gdf.certainty == "good",
+                ratesofchange_gdf.columns.str.contains("dist_|geometry"),
             ]
-        )
-        log.info(
-            f"Study area {study_area}: Calculated distances to each annual shoreline"
+            .sjoin(buffered_gdf, predicate="within")
+            .groupby("index_right")
         )
 
-        # Calculate regressions
-        points_gdf = calculate_regressions(points_gdf)
-        log.info(f"Study area {study_area}: Calculated rates of change regressions")
+        # Aggregate/summarise values by taking median of all points
+        # within each buffered polygon
+        hotspot_values = hotspot_grouped.median(numeric_only=True).round(2)
 
-        # Add count and span of valid obs, Shoreline Change Envelope
-        # (SCE), Net Shoreline Movement (NSM) and Max/Min years
-        stats_list = ["valid_obs", "valid_span", "sce", "nsm", "max_year", "min_year"]
-        points_gdf[stats_list] = points_gdf.apply(
-            lambda x: all_time_stats(x, initial_year=start_year), axis=1
+        # Extract year from distance columns (remove "dist_")
+        x_years = hotspot_values.columns.str.replace("dist_", "").astype(int)
+
+        # Compute coastal change rates by linearly regressing annual
+        # movements vs. time
+        rate_out = hotspot_values.apply(
+            lambda row: change_regress(
+                y_vals=row.values.astype(float), x_vals=x_years, x_labels=x_years
+            ),
+            axis=1,
         )
-        log.info(f"Study area {study_area}: Calculated all of time statistics")
 
-        # Add certainty column to points dataset
-        points_gdf = points_certainty(points_gdf, geomorphology_gdf)
-        log.info(f"Study area {study_area}: Calculated rate of change certainty flags")
+        # Add rates of change back into dataframe
+        hotspot_values[
+            ["rate_time", "incpt_time", "sig_time", "se_time", "outl_time"]
+        ] = rate_out
 
-        # Add region attributes
-        points_gdf = region_attributes(
-            points_gdf, region_gdf, attribute_col="ID_Primary", rename_col="id_primary"
-        )
+        # Join aggregated values back to hotspot points after
+        # dropping unused columns (regression intercept)
+        hotspots_gdf = hotspots_gdf.join(hotspot_values.drop("incpt_time", axis=1))
+
+        # Add hotspots radius attribute column
+        hotspots_gdf["radius_m"] = radius
+
+        # Initialise certainty column with good values
+        hotspots_gdf["certainty"] = "good"
+
+        # Identify any points with insufficient observations and flag these as
+        # uncertain. We can obtain a sensible threshold by dividing the
+        # hotspots radius by 30 m along-shore rates of change point distance)
+        hotspots_gdf["n"] = hotspot_grouped.size()
+        hotspots_gdf["n"] = hotspots_gdf["n"].fillna(0)
+        hotspots_gdf.loc[
+            hotspots_gdf.n < (radius / 30), "certainty"
+        ] = "insufficient points"
 
         # Generate a geohash UID for each point and set as index
         uids = (
-            points_gdf.geometry.to_crs("EPSG:4326")
-            .apply(lambda x: gh.encode(x.y, x.x, precision=10))
+            hotspots_gdf.geometry.to_crs("EPSG:4326")
+            .apply(lambda x: geohash.encode(x.y, x.x, precision=11))
             .rename("uid")
         )
-        points_gdf = points_gdf.set_index(uids)
+        hotspots_gdf = hotspots_gdf.set_index(uids)
 
-        log.info(f"Study area {study_area}: Added region attributes and geohash UIDs")
+        if add_wms_fields:
+            # Add the WMS fields to hotspots
+            hotspots_gdf = pd.concat([hotspots_gdf, wms_fields(hotspots_gdf)], axis=1)
 
-        ################
-        # Export stats #
-        ################
+        hotspots.append(hotspots_gdf)
 
-        # Clip stats to study area extent
-        points_gdf_clipped = points_gdf.clip(gridcell_gdf)
-
-        # Set output path
-        stats_path = (
-            f"{output_dir}/ratesofchange_{study_area}_"
-            f"{vector_version}_{water_index}_{index_threshold:.2f}"
-        )
-
-        try:
-            # Export to GeoJSON
-            points_gdf_clipped.to_crs("EPSG:4326").to_file(
-                f"{stats_path}.geojson",
-                driver="GeoJSON",
-            )
-
-            # Export as ESRI shapefiles
-            points_gdf_clipped.to_file(
-                f"{stats_path}.shp",
-                schema={
-                    "properties": vector_schema(points_gdf_clipped),
-                    "geometry": "Point",
-                },
-            )
-
-        except ValueError:
-            log.warning(
-                f"Study area {study_area}: No vector points data to export after clipping to study area extent"
-            )
-
-    else:
-        log.warning(f"Study area {study_area}: No rates of change points to process")
-
-    #####################
-    # Export shorelines #
-    #####################
-
-    # Assign certainty to shorelines based on underlying masks
-    contours_gdf = contour_certainty(contours_gdf, certainty_masks)
-
-    # Add tide datum details (this supports future addition of extra tide datums)
-    contours_gdf["tide_datum"] = "0.0 m AMSL"
-
-    # Add region attributes
-    contours_gdf = region_attributes(
-        contours_gdf, region_gdf, attribute_col="ID_Primary", rename_col="id_primary"
-    )
-
-    # Set output path
-    contour_path = (
-        f"{output_dir}/annualshorelines_{study_area}_{vector_version}_"
-        f"{water_index}_{index_threshold:.2f}"
-    )
-
-    # Clip annual shoreline contours to study area extent
-    contours_gdf_clipped = contours_gdf.clip(gridcell_gdf)
-
-    try:
-        # Export to GeoJSON
-        contours_gdf_clipped.to_crs("EPSG:4326").to_file(
-            f"{contour_path}.geojson", driver="GeoJSON"
-        )
-
-        # Export stats and contours as ESRI shapefiles
-        contours_gdf_clipped.to_file(
-            f"{contour_path}.shp",
-            schema={
-                "properties": vector_schema(contours_gdf_clipped),
-                "geometry": ["MultiLineString", "LineString"],
-            },
-        )
-
-    except ValueError:
-        raise ValueError(
-            f"Study area {study_area}: No vector shorelines data to export after clipping to study area extent"
-        )
-
-    log.info(f"Study area {study_area}: Output vector files written to {output_dir}")
-
-
-@click.command()
-@click_config_path
-@click.option(
-    "--study_area",
-    type=str,
-    required=True,
-    help="A string providing a unique ID of an analysis "
-    "gridcell that was previously used to generate raster "
-    "files. This is used to identify the raster files that "
-    "will be used as inputs for shoreline extraction, and "
-    'should match a row in the "id" column of the provided '
-    "analysis gridcell vector file.",
-)
-@click.option(
-    "--raster_version",
-    type=str,
-    required=True,
-    help="A unique string providing a name that was used "
-    "to generate raster files. This is used to identify the "
-    "raster files that will be used as inputs for shoreline "
-    "extraction.",
-)
-@click.option(
-    "--vector_version",
-    type=str,
-    help="A unique string proving a name that will be used "
-    "for output vector directories and files. This allows "
-    "multiple versions of vector files to be generated "
-    "from the same input raster data, e.g. for testing "
-    "different water index thresholds or indices. If "
-    "not provided, this will default to the same string "
-    'supplied to "--raster_version".',
-)
-@click.option(
-    "--water_index",
-    type=str,
-    default="mndwi",
-    help="A string giving the name of the computed water "
-    "index to use for shoreline extraction. "
-    'Defaults to "mndwi".',
-)
-@click_index_threshold
-@click_start_year
-@click_end_year
-@click_baseline_year
-@click.option(
-    "--aws_unsigned/--no-aws_unsigned",
-    type=bool,
-    default=True,
-    help="Whether to use sign AWS requests for S3 access",
-)
-@click.option(
-    "--overwrite/--no-overwrite",
-    type=bool,
-    default=True,
-    help="Whether to overwrite tiles with existing outputs, "
-    "or skip these tiles entirely.",
-)
-def generate_vectors_cli(
-    config_path,
-    study_area,
-    raster_version,
-    vector_version,
-    water_index,
-    index_threshold,
-    start_year,
-    end_year,
-    baseline_year,
-    aws_unsigned,
-    overwrite,
-):
-    log = configure_logging(f"Coastlines vector generation for study area {study_area}")
-
-    # If no vector version is provided, copy raster version
-    if vector_version is None:
-        vector_version = raster_version
-
-    # Test if study area has already been run by checking if run status file exists
-    run_status_file = f"data/interim/vector/{vector_version}/{study_area}_{vector_version}/run_completed"
-    output_exists = os.path.exists(run_status_file)
-
-    # Skip if outputs exist but overwrite is False
-    if output_exists and not overwrite:
-        log.info(
-            f"Study area {study_area}: Data exists but overwrite set to False; skipping."
-        )
-        sys.exit(0)
-
-    # Load analysis params from config file
-    config = load_config(config_path=config_path)
-
-    # Do an opinionated configuration of S3
-    configure_s3_access(cloud_defaults=True, aws_unsigned=aws_unsigned)
-
-    # Run the code to generate vectors
-    try:
-        generate_vectors(
-            config,
-            study_area,
-            raster_version,
-            vector_version,
-            water_index,
-            index_threshold,
-            start_year,
-            end_year,
-            baseline_year,
-            log=log,
-        )
-
-        # Create blank run status file to indicate run completion
-        with open(
-            run_status_file,
-            mode="w",
-        ):
-            pass
-
-    except Exception as e:
-        log.exception(f"Study area {study_area}: Failed to run process with error {e}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    generate_vectors_cli()
+    return hotspots

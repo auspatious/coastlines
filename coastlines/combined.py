@@ -365,6 +365,7 @@ def mask_pixels_by_tide(
 def filter_by_tides(
     ds: xr.Dataset, tide_data_location: str, tide_centre: float
 ) -> xr.Dataset:
+    """Filter out scenes that are wholy covered by extreme tides"""
     tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location)
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(

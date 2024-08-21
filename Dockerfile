@@ -21,18 +21,10 @@ RUN apt-get update \
     apt-get autoremove && \
     rm -rf /var/lib/{apt,dpkg,cache,log}
 
-
-# Environment can be whatever is supported by setup.py
-# so, either deployment, test
-ARG ENVIRONMENT=deployment
-
-RUN echo "Environment is: $ENVIRONMENT"
-
 COPY requirements.txt /tmp/
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r /tmp/requirements.txt \
     --no-binary rasterio \
-    # --no-binary shapely \
     --no-binary fiona
 
 # Set up a nice workdir and add the live code
@@ -41,14 +33,9 @@ RUN mkdir -p $APPDIR
 WORKDIR $APPDIR
 ADD . $APPDIR
 
-RUN if [ "$ENVIRONMENT" = "deployment" ] ; then\
-        pip install .[$ENVIRONMENT] ; \
-    else \
-        pip install --editable .[$ENVIRONMENT] ; \
-    fi
-
+RUN pip install .
 
 CMD ["python", "--version"]
 
-RUN  coastlines-combined --help && \
-     coastlines-print-tiles --help
+# Smoketest
+RUN coastlines-combined --help

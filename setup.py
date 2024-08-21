@@ -55,7 +55,7 @@ DESCRIPTION = "Tools for running Coastlines"
 URL = "https://github.com/auspatious/coastlines"
 EMAIL = "alex@auspatious.com"
 AUTHOR = "Alex Leith"
-REQUIRES_PYTHON = ">=3.11.0"
+REQUIRES_PYTHON = ">=3.10.0"
 
 # Setup kwargs
 setup_kwargs = {

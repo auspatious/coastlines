@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
-import os
-
 from setuptools import find_packages, setup
-
-# Where are we?
-IS_SANDBOX = "sandbox" in os.getenv("JUPYTER_IMAGE", default="")
 
 tests_require = [
     "pytest",
@@ -55,12 +50,12 @@ REQUIRED = [
 ]
 
 # Package metadata
-NAME = "dea_coastlines"
-DESCRIPTION = "Tools for running Digital Earth Australia Coastlines"
-URL = "https://github.com/GeoscienceAustralia/dea-coastlines"
-EMAIL = "Robbi.BishopTaylor@ga.gov.au"
-AUTHOR = "Robbi Bishop-Taylor"
-REQUIRES_PYTHON = ">=3.8.0"
+NAME = "coastlines"
+DESCRIPTION = "Tools for running Coastlines"
+URL = "https://github.com/auspatious/coastlines"
+EMAIL = "alex@auspatious.com"
+AUTHOR = "Alex Leith"
+REQUIRES_PYTHON = ">=3.11.0"
 
 # Setup kwargs
 setup_kwargs = {
@@ -72,7 +67,7 @@ setup_kwargs = {
     "author_email": EMAIL,
     "python_requires": REQUIRES_PYTHON,
     "url": URL,
-    "install_requires": REQUIRED if not IS_SANDBOX else [],
+    "install_requires": REQUIRED,
     "tests_require": tests_require,
     "extras_require": extras,
     "packages": find_packages(),
@@ -80,9 +75,6 @@ setup_kwargs = {
     "license": "Apache License 2.0",
     "entry_points": {
         "console_scripts": [
-            "deacoastlines-raster = coastlines.raster:generate_rasters_cli",
-            "deacoastlines-vector = coastlines.vector:generate_vectors_cli",
-            "deacoastlines-continental = coastlines.continental:continental_cli",
             "coastlines-print-tiles = coastlines.print_tiles:cli",
             "coastlines-combined = coastlines.combined:cli",
             "coastlines-merge = coastlines.merge_tiles:cli",

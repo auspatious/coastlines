@@ -34,10 +34,11 @@ Clone the `coastlines` repository and checkout the `main` branch:
 git clone https://github.com/auspatious/coastlines.git
 ```
 
-#### FES2014 tidal model
+#### Tidal model
 
-Coastlines uses the FES2014 tidal model to account for the influence of tide on shoreline positions.
-To install this tidal model, follow the [Setting up tidal models for DEA Coastlines guide on the Wiki](https://github.com/GeoscienceAustralia/dea-coastlines/wiki/Setting-up-tidal-models-for-DEA-Coastlines).
+Coastlines uses either the FES2014 or FES2022 tidal models to account for the influence of tide
+on shoreline positions. To install this tidal model, follow the
+[Setting up tidal models for DEA Coastlines guide on the Wiki](https://github.com/GeoscienceAustralia/dea-coastlines/wiki/Setting-up-tidal-models-for-DEA-Coastlines).
 
 ### Running a Coastlines analysis using the command-line interface (CLI)
 

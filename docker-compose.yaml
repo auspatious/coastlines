@@ -1,5 +1,3 @@
-version: '3.4'
-
 services:
   postgres:
     # db with some data from ls5, 7, 8 pre-indexed

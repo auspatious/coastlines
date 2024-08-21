@@ -16,6 +16,8 @@ from yaml import safe_load
 
 from coastlines.config import CoastlinesConfig
 
+from dea_tools.spatial import subpixel_contours
+
 STYLES_FILE = Path(__file__).parent / "styles.csv"
 
 
@@ -233,6 +235,30 @@ def wms_fields(gdf):
     )
 
     return wms_fields
+
+
+def extract_contours(
+    dataset: Dataset, z_values: float = 0.0, min_vertices: int = 15
+) -> GeoDataFrame:
+    contour_arrays = {}
+    for i, da in dataset.groupby("year"):
+        contours = subpixel_contours(
+            da=da.combined.squeeze(),
+            z_values=z_values,
+            crs=dataset.geobox.crs,
+            min_vertices=min_vertices,
+            verbose=False,
+        )
+        contour_arrays[i] = contours
+
+    contour_gdf = gpd.GeoDataFrame(
+        data={"year": list(contour_arrays.keys())},
+        geometry=pd.concat(contour_arrays.values(), ignore_index=True).geometry,
+    )
+
+    contour_gdf = contour_gdf.set_index("year")
+
+    return contour_gdf
 
 
 click_config_path = click.option(

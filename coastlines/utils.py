@@ -238,12 +238,15 @@ def wms_fields(gdf):
 
 
 def extract_contours(
-    dataset: Dataset, z_values: float = 0.0, min_vertices: int = 15
+    dataset: Dataset,
+    z_values: float = 0.0,
+    min_vertices: int = 15,
+    index_name: str = "combined",
 ) -> GeoDataFrame:
     contour_arrays = {}
     for i, da in dataset.groupby("year"):
         contours = subpixel_contours(
-            da=da.combined.squeeze(),
+            da=da[index_name].squeeze(),
             z_values=z_values,
             crs=dataset.geobox.crs,
             min_vertices=min_vertices,

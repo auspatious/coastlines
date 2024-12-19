@@ -42,13 +42,17 @@ on shoreline positions. To install this tidal model, follow the
 
 ### Running a Coastlines analysis using the command-line interface (CLI)
 
-TODO: document
+There are three commands that can be used, as follows:
+
+* `print-tiles` will take a config file and an optional subset, and will echo all the tile-ids to the output. This is used to create a list of work that needs to be done.
+* `coastlines-combined` runs the full Coastlines process, from setting up raster data and cleaning through to contour extraction.
+* `coastlines-merge` will merge results from the tile-based processing into a single combined file.
 
 ## Credits
 
 Original implementation from Digital Earth Australia.
 
-Tidal modelling is provided by the [FES2014 global tidal model](https://www.aviso.altimetry.fr/es/data/products/auxiliary-products/global-tide-fes/description-fes2014.html), implemented using the pyTMD Python package. FES2014 was produced by NOVELTIS, LEGOS, CLS Space Oceanography Division and CNES. It is distributed by AVISO, with support from CNES [http://www.aviso.altimetry.fr/](http://www.aviso.altimetry.fr/).
+Tidal modelling is provided by the [FES2022 global tidal model](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes.html), implemented using the pyTMD Python package. FES2022 was produced by NOVELTIS, LEGOS, CLS Space Oceanography Division and CNES. It is distributed by AVISO, with support from CNES [http://www.aviso.altimetry.fr/](http://www.aviso.altimetry.fr/).
 
 ## References
 

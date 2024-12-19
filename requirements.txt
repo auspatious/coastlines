@@ -356,7 +356,6 @@ numpy==1.26.4
     #   scikit-learn
     #   scipy
     #   shapely
-    #   snuggs
     #   sparse
     #   tifffile
     #   timescale
@@ -464,7 +463,7 @@ pyparsing==3.1.2
     # via
     #   datacube-ows
     #   matplotlib
-    #   snuggs
+    #   rasterio
 pyproj==3.6.1
     # via
     #   coastlines (setup.py)
@@ -523,7 +522,7 @@ pyyaml==6.0.1
     #   datacube
     #   distributed
     #   owslib
-rasterio==1.3.10
+rasterio==1.4.3
     # via
     #   coastlines (setup.py)
     #   datacube
@@ -617,8 +616,6 @@ slicerator==1.1.0
     # via pims
 smart-open==7.0.4
     # via s3path
-snuggs==1.4.7
-    # via rasterio
 sortedcontainers==2.4.0
     # via distributed
 sparse==0.15.4

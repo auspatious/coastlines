@@ -36,7 +36,7 @@ REQUIRED = [
     "python_geohash",
     "pytz",
     "PyYAML",
-    "rasterio",
+    "rasterio>=1.4.3",
     "rioxarray",
     "s3path",
     "scikit_image",

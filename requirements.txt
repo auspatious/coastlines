@@ -6,9 +6,9 @@
 #
 affine==2.4.0
     # via
+    #   coastlines (setup.py)
     #   datacube
     #   datacube-ows
-    #   dea_coastlines (setup.py)
     #   odc-algo
     #   odc-geo
     #   odc-stac
@@ -16,8 +16,8 @@ affine==2.4.0
     #   rasterstats
 aiohttp==3.9.5
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
 aiosignal==1.3.1
     # via aiohttp
 annotated-types==0.7.0
@@ -39,7 +39,7 @@ babel==2.15.0
 blinker==1.8.2
     # via flask
 bokeh==3.4.1
-    # via dea_coastlines (setup.py)
+    # via coastlines (setup.py)
 boto3==1.34.114
     # via
     #   datacube
@@ -48,9 +48,9 @@ boto3==1.34.114
 botocore==1.34.114
     # via
     #   boto3
+    #   coastlines (setup.py)
     #   datacube
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   s3transfer
 bottleneck==1.3.8
     # via datacube
@@ -84,10 +84,10 @@ click==8.1.7
     # via
     #   click-plugins
     #   cligj
+    #   coastlines (setup.py)
     #   dask
     #   datacube
     #   datacube-ows
-    #   dea_coastlines (setup.py)
     #   distributed
     #   fiona
     #   flask
@@ -140,15 +140,15 @@ dask-ml==2024.4.4
     # via dea-tools
 datacube[performance,s3]==1.8.18
     # via
+    #   coastlines (setup.py)
     #   datacube-ows
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   odc-algo
     #   odc-ui
 datacube-ows==1.8.40
     # via dea-tools
 dea-tools==0.3.2
-    # via dea_coastlines (setup.py)
+    # via coastlines (setup.py)
 decorator==5.1.1
     # via ipython
 deepdiff==7.0.1
@@ -165,8 +165,8 @@ executing==2.0.1
     # via stack-data
 fiona==1.9.6
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   geopandas
     #   rasterstats
 flask==3.0.3
@@ -196,12 +196,10 @@ geographiclib==2.0
     # via geopy
 geopandas==0.14.4
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
 geopy==2.4.1
     # via dea-tools
-greenlet==3.0.3
-    # via sqlalchemy
 h3==3.7.7
     # via timezonefinder
 hdstats==0.2.1
@@ -282,17 +280,18 @@ lxml==5.2.2
     #   owslib
     #   pyows
     #   pytmd
+    #   timescale
 mapclassify==2.6.1
-    # via dea_coastlines (setup.py)
+    # via coastlines (setup.py)
 markupsafe==2.1.5
     # via
     #   jinja2
     #   werkzeug
 matplotlib==3.9.0
     # via
+    #   coastlines (setup.py)
     #   datacube-ows
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   odc-ui
 matplotlib-inline==0.1.7
     # via ipython
@@ -325,6 +324,7 @@ numpy==1.26.4
     #   bokeh
     #   bottleneck
     #   cftime
+    #   coastlines (setup.py)
     #   contourpy
     #   dask
     #   dask-image
@@ -332,7 +332,6 @@ numpy==1.26.4
     #   datacube
     #   datacube-ows
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   folium
     #   geopandas
     #   hdstats
@@ -360,21 +359,22 @@ numpy==1.26.4
     #   snuggs
     #   sparse
     #   tifffile
+    #   timescale
     #   timezonefinder
     #   xarray
 odc-algo==0.2.3
     # via odc-ui
 odc-geo==0.4.5
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   odc-stac
 odc-stac==0.3.9
     # via dea-tools
 odc-ui==0.2.1
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
 ordered-set==4.1.0
     # via deepdiff
 owslib==0.31.0
@@ -399,13 +399,13 @@ packaging==24.0
 pandas==2.2.2
     # via
     #   bokeh
+    #   coastlines (setup.py)
     #   dask
     #   dask-expr
     #   dask-image
     #   dask-ml
     #   datacube
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   geopandas
     #   mapclassify
     #   odc-stac
@@ -446,13 +446,13 @@ pure-eval==0.2.2
     # via stack-data
 pyarrow==16.1.0
     # via
+    #   coastlines (setup.py)
     #   dask-expr
-    #   dea_coastlines (setup.py)
 pycparser==2.22
     # via cffi
 pydantic==2.7.2
     # via
-    #   dea_coastlines (setup.py)
+    #   coastlines (setup.py)
     #   planetary-computer
 pydantic-core==2.18.3
     # via pydantic
@@ -467,9 +467,9 @@ pyparsing==3.1.2
     #   snuggs
 pyproj==3.6.1
     # via
+    #   coastlines (setup.py)
     #   datacube
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   geopandas
     #   odc-geo
     #   pytmd
@@ -495,21 +495,22 @@ python-dateutil==2.9.0.post0
     #   pystac
     #   pystac-client
     #   pytmd
+    #   timescale
 python-dotenv==1.0.1
     # via planetary-computer
 python-geohash==0.8.5
-    # via dea_coastlines (setup.py)
+    # via coastlines (setup.py)
 python-slugify==8.0.4
     # via datacube-ows
-pytmd==2.0.9
+pytmd==2.1.9
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
 pytz==2024.1
     # via
+    #   coastlines (setup.py)
     #   datacube-ows
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   flask-babel
     #   owslib
     #   pandas
@@ -517,17 +518,17 @@ pytz==2024.1
 pyyaml==6.0.1
     # via
     #   bokeh
+    #   coastlines (setup.py)
     #   dask
     #   datacube
-    #   dea_coastlines (setup.py)
     #   distributed
     #   owslib
 rasterio==1.3.10
     # via
+    #   coastlines (setup.py)
     #   datacube
     #   datacube-ows
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   odc-algo
     #   odc-stac
     #   odc-ui
@@ -551,8 +552,8 @@ requests==2.32.2
     #   pystac-client
 rioxarray==0.15.5
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
 rpds-py==0.18.1
     # via
     #   jsonschema
@@ -562,44 +563,46 @@ ruamel-yaml==0.18.6
 ruamel-yaml-clib==0.2.8
     # via ruamel-yaml
 s3path==0.5.7
-    # via dea_coastlines (setup.py)
+    # via coastlines (setup.py)
 s3transfer==0.10.1
     # via boto3
 scikit-image==0.23.2
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   odc-algo
 scikit-learn==1.5.0
     # via
+    #   coastlines (setup.py)
     #   dask-glm
     #   dask-ml
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   mapclassify
 scipy==1.13.1
     # via
+    #   coastlines (setup.py)
     #   dask-glm
     #   dask-image
     #   dask-ml
     #   datacube-ows
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   hdstats
     #   mapclassify
     #   pytmd
     #   scikit-image
     #   scikit-learn
     #   sparse
+    #   timescale
 setuptools-scm==8.1.0
     # via
     #   datacube-ows
     #   pytmd
+    #   timescale
 shapely==2.0.4
     # via
+    #   coastlines (setup.py)
     #   datacube
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   geopandas
     #   odc-geo
     #   rasterstats
@@ -636,6 +639,8 @@ tifffile==2024.5.22
     # via
     #   dask-image
     #   scikit-image
+timescale==0.0.6
+    # via pytmd
 timezonefinder==6.5.0
     # via datacube-ows
 toolz==0.12.1
@@ -652,8 +657,8 @@ tornado==6.4
     #   distributed
 tqdm==4.66.4
     # via
+    #   coastlines (setup.py)
     #   dea-tools
-    #   dea_coastlines (setup.py)
 traitlets==5.14.3
     # via
     #   comm
@@ -687,10 +692,10 @@ wrapt==1.16.0
     #   smart-open
 xarray==2024.5.0
     # via
+    #   coastlines (setup.py)
     #   datacube
     #   datacube-ows
     #   dea-tools
-    #   dea_coastlines (setup.py)
     #   odc-algo
     #   odc-stac
     #   odc-ui

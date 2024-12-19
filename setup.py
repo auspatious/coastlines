@@ -32,7 +32,7 @@ REQUIRED = [
     "pyarrow",
     "pydantic",
     "pyproj",
-    "pyTMD==2.1.4",
+    "pyTMD>=2.1.4",
     "python_geohash",
     "pytz",
     "PyYAML",

@@ -32,3 +32,21 @@ PHILIPPINES_10 = GridSpec(
     resolution=10,
     origin=XY(-TEN_MILLION, -TEN_MILLION),
 )
+
+# Indonesion-related grids
+
+INDONESIA_CRS = "EPSG:3832"
+
+INDONESIA_25 = GridSpec(
+    crs=INDONESIA_CRS,
+    tile_shape=(2000, 2000),
+    resolution=25,
+    origin=XY(0, 0),
+)
+
+INDONESIA_10 = GridSpec(
+    crs=INDONESIA_CRS,
+    tile_shape=(5000, 5000),
+    resolution=10,
+    origin=XY(0, 0),
+)

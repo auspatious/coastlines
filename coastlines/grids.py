@@ -2,6 +2,8 @@ from odc.geo import XY
 from odc.geo.gridspec import GridSpec
 
 # numbers
+ONE_TWO_FIVE_MILLION = 1_250_000
+SIX_TWO_FIVE = 6_250_000
 TEN_MILLION = 10_000_000
 
 # Vietnam-related grids
@@ -41,12 +43,12 @@ INDONESIA_25 = GridSpec(
     crs=INDONESIA_CRS,
     tile_shape=(2000, 2000),
     resolution=25,
-    origin=XY(0, 0),
+    origin=XY(-SIX_TWO_FIVE, -ONE_TWO_FIVE_MILLION),
 )
 
 INDONESIA_10 = GridSpec(
     crs=INDONESIA_CRS,
     tile_shape=(5000, 5000),
     resolution=10,
-    origin=XY(0, 0),
+    origin=XY(-SIX_TWO_FIVE, -ONE_TWO_FIVE_MILLION),
 )

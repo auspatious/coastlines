@@ -43,6 +43,8 @@ from coastlines.vector import (
     points_on_line,
 )
 
+import planetary_computer
+
 # TODO: work out how to pass this in...
 STAC_CFG = {
     "landsat-c2l2-sr": {
@@ -317,11 +319,24 @@ def mask_pixels_by_hillshadow(
     }
 
     dem_items = list(client.search(collections=[stac_collection], bbox=bbox).items())
+    if debug:
+        for item in dem_items:
+            attrs = vars(item)
+            print(', '.join("%s: %s" % item for item in attrs.items()))
 
     if len(dem_items) == 0:
         raise CoastlinesException("No DEM items found.")
     else:
-        dem = load(dem_items, like=ds, measurements=["data"])
+        dem_items_signed = []
+        for item in dem_items:
+            item.assets["data"] = planetary_computer.sign(item.assets["data"])
+            dem_items_signed.append(item)
+        if debug:
+            for item in dem_items_signed:
+                attrs = vars(item)
+                print(', '.join("%s: %s" % item for item in attrs.items()))
+
+        dem = load(dem_items_signed, like=ds, measurements=["data"])
 
         hillshadow = parallel_apply(
             ds,
@@ -341,10 +356,10 @@ def mask_pixels_by_hillshadow(
 
 
 def mask_pixels_by_tide(
-    ds: xr.Dataset, tide_data_location: str, tide_centre: float, debug: bool = False
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float, tide_model: str, debug: bool = False
 ) -> xr.Dataset:
     tides, tides_lowres = pixel_tides(
-        ds, resample=True, directory=tide_data_location, dask_compute=True
+        ds, resample=True, directory=tide_data_location, dask_compute=True, model=tide_model
     )
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
@@ -363,10 +378,10 @@ def mask_pixels_by_tide(
 
 
 def filter_by_tides(
-    ds: xr.Dataset, tide_data_location: str, tide_centre: float
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float, tide_model: str
 ) -> xr.Dataset:
     """Filter out scenes that are wholy covered by extreme tides"""
-    tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location)
+    tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location, model=tide_model)
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
         ds, tides_lowres, tide_centre=tide_centre, reproject=False

@@ -43,8 +43,6 @@ from coastlines.vector import (
     points_on_line,
 )
 
-import planetary_computer
-
 # TODO: work out how to pass this in...
 STAC_CFG = {
     "landsat-c2l2-sr": {
@@ -323,7 +321,6 @@ def mask_pixels_by_hillshadow(
     if len(dem_items) == 0:
         raise CoastlinesException("No DEM items found.")
     else:
-        
         dem = load(dem_items, like=ds, measurements=["data"])
 
         hillshadow = parallel_apply(

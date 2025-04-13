@@ -6,30 +6,28 @@ metadata:
 spec:
   serviceAccountName: cenv-coastlines-team-sa-argo
   entrypoint: coastlines-dag
-  parallelism: 50
+  parallelism: 5
   podGC:
     strategy: OnPodSuccess
     deleteDelayDuration: 120s
+  podMetadata:
+    annotations:
+      karpenter.sh/do-not-disrupt: "true"
   nodeSelector:
-    nodegroup: data_pipelines
-  tolerations:
-    - key: easi.csiro.au/dedicated
-      operator: Equal
-      effect: NoSchedule
-      value: data_pipelines
+    karpenter.sh/capacity-type: "spot"
   workflowMetadata:
     labels:
       app: indonesia-coastlines
   arguments:
     parameters:
       - name: image-tag
-        value: "0.9.0"
+        value: "0.9.1"
       - name: result-version
         value: "0.9.1"
       - name: tiles-subset
-        value: '[\"206,241\",\"207,241\",\"208,241\",\"206,240\",\"207,240\",\"208,240\",\"208,239\"]' # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
+        value: '[\"47,5\",\"24,12\",\"65,1\"]' # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
       - name: config
-        value: configs/philippines_coastlines_newindex_config.yaml
+        value: configs/indonesia_coastlines_config.yaml
       - name: overwrite
         value: "--no-overwrite"
   templates:
@@ -95,7 +93,7 @@ spec:
           - name: result-version
           - name: overwrite
       retryStrategy:
-        limit: 0
+        limit: 2
         retryPolicy: Always
       container:
         image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
@@ -113,7 +111,7 @@ spec:
             set -xe
 
             echo "Downloading tide model"
-            wget -qq https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/tide_models_vn_ph.zip \
+            wget -qq https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/tide_models_indo.zip \
               -O /tmp/tide_models.zip && \
             unzip -qq /tmp/tide_models.zip -d /tmp/tide_models_temp &&
             mv /tmp/tide_models_temp/tide_models_clipped /tmp/tide_models

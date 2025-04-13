@@ -319,24 +319,12 @@ def mask_pixels_by_hillshadow(
     }
 
     dem_items = list(client.search(collections=[stac_collection], bbox=bbox).items())
-    if debug:
-        for item in dem_items:
-            attrs = vars(item)
-            print(', '.join("%s: %s" % item for item in attrs.items()))
 
     if len(dem_items) == 0:
         raise CoastlinesException("No DEM items found.")
     else:
-        dem_items_signed = []
-        for item in dem_items:
-            item.assets["data"] = planetary_computer.sign(item.assets["data"])
-            dem_items_signed.append(item)
-        if debug:
-            for item in dem_items_signed:
-                attrs = vars(item)
-                print(', '.join("%s: %s" % item for item in attrs.items()))
-
-        dem = load(dem_items_signed, like=ds, measurements=["data"])
+        
+        dem = load(dem_items, like=ds, measurements=["data"])
 
         hillshadow = parallel_apply(
             ds,

@@ -1,6 +1,6 @@
 input:
-  grid_path: "https://raw.githubusercontent.com/auspatious/dea-coastlines/stable/data/raw/indonesia_tiles.geojson"
-  modifications_path: "https://raw.githubusercontent.com/auspatious/dea-coastlines/stable/data/raw/empty_modifications.geojson"
+  grid_path: "https://raw.githubusercontent.com/auspatious/coastlines/main/data/raw/indonesia_tiles.geojson"
+  modifications_path: "https://raw.githubusercontent.com/auspatious/coastlines/main/data/raw/empty_modifications.geojson"
   geomorphology_path: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip"
 
 output:

@@ -641,7 +641,7 @@ def process_coastlines(
     # Calculate tides and combine with the data
     log.info("Filtering by tides")
     n_times = len(data.time)
-    data = filter_by_tides(data, tide_data_location, config.options.tide_centre)
+    data = filter_by_tides(data, tide_data_location, config.options.tide_centre, config.options.tide_model)
     log.info(
         f"Dropped {n_times - len(data.time)} out of {n_times} timesteps due to extreme tides"
     )
@@ -651,7 +651,7 @@ def process_coastlines(
         data = data.compute()
 
     log.info("Running per-pixel tide masking at high resolution")
-    data = mask_pixels_by_tide(data, tide_data_location, config.options.tide_centre)
+    data = mask_pixels_by_tide(data, tide_data_location, config.options.tide_centre, config.options.tide_model)
 
     if config.options.mask_with_hillshade:
         log.info("Running per-pixel terrain shadow masking")

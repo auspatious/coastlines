@@ -4,7 +4,7 @@ input:
   geomorphology_path: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip"
 
 output:
-  location: "data/processed/"
+  location: "s3://easi-asia-dc-data-projects/coastlines/indo/"
   crs: "EPSG:32651"
 
 stac:
@@ -19,7 +19,7 @@ options:
   end_year: 2023
   baseline_year: 2021
 
-  tide_model: FES2022
+  tide_model: "FES2022"
 
   water_index: "mndwi_nir"
   index_threshold: 0.65

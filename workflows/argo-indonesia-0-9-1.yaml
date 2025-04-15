@@ -21,9 +21,9 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.9.1"
+        value: "0.9.3-6-g161c8e0"
       - name: result-version
-        value: "0.9.1"
+        value: "0.9.3"
       - name: tiles-subset
         value: '[\"47,5\",\"24,12\",\"65,1\"]' # Can be [] for all tiles or '[\"200,221\",\"200,221\"]'
       - name: config
@@ -74,7 +74,7 @@ spec:
           - name: config
           - name: tiles-subset
       container:
-        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
+        image: ghcr.io/auspatious/coastlines:{{workflow.parameters.image-tag}}
         command: [bash, -c]
         args:
           - >-
@@ -96,7 +96,7 @@ spec:
         limit: 2
         retryPolicy: Always
       container:
-        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
+        image: ghcr.io/auspatious/coastlines:{{workflow.parameters.image-tag}}
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -111,10 +111,10 @@ spec:
             set -xe
 
             echo "Downloading tide model"
-            wget -qq https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/tide_models_indo.zip \
+            wget -qq https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/indo_tide_models.zip \
               -O /tmp/tide_models.zip && \
             unzip -qq /tmp/tide_models.zip -d /tmp/tide_models_temp &&
-            mv /tmp/tide_models_temp/tide_models_clipped /tmp/tide_models
+            mv /tmp/tide_models_temp /tmp/tide_models
 
             echo "Running coastlines"
             coastlines-combined \
@@ -133,7 +133,7 @@ spec:
           - name: config
           - name: result-version
       container:
-        image: ghcr.io/auspatious/dea-coastlines:{{workflow.parameters.image-tag}}
+        image: ghcr.io/auspatious/coastlines:{{workflow.parameters.image-tag}}
         imagePullPolicy: IfNotPresent
         resources:
           requests:

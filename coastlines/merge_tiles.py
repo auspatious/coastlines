@@ -15,12 +15,12 @@ from coastlines.utils import (
     click_config_path,
     click_output_version,
     configure_logging,
-    generate_hotspots,
     is_s3,
     load_config,
     wms_fields,
 )
 
+from coastlines.vector import generate_hotspots
 
 def list_files_s3(input_location: str, suffix: str):
     input_location = input_location.lower()

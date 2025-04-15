@@ -20,7 +20,7 @@ REQUIRED = [
     "botocore",
     "click",
     "datacube[s3,performance]",
-    "dea_tools>=0.3.0",
+    "dea_tools>=0.3.5",
     "Fiona",
     "geopandas",
     "matplotlib",

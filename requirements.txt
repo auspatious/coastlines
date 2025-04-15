@@ -147,7 +147,7 @@ datacube[performance,s3]==1.8.18
     #   odc-ui
 datacube-ows==1.8.40
     # via dea-tools
-dea-tools==0.3.2
+dea-tools==0.3.5
     # via coastlines (setup.py)
 decorator==5.1.1
     # via ipython
@@ -200,6 +200,8 @@ geopandas==0.14.4
     #   dea-tools
 geopy==2.4.1
     # via dea-tools
+greenlet==3.1.1
+    # via sqlalchemy
 h3==3.7.7
     # via timezonefinder
 hdstats==0.2.1
@@ -501,7 +503,7 @@ python-geohash==0.8.5
     # via coastlines (setup.py)
 python-slugify==8.0.4
     # via datacube-ows
-pytmd==2.1.9
+pytmd==2.1.6
     # via
     #   coastlines (setup.py)
     #   dea-tools

@@ -24,11 +24,15 @@ options:
   water_index: "mndwi_nir"
   index_threshold: 0.65
 
-  mask_with_hillshade: False
+  mask_with_hillshade: True
   mask_with_esa_wc: True
 
   load_buffer_distance: 5000
 
+hillshade:
+  stac_catalog: "https://earth-search.aws.element84.com/v1"
+  stac_collection: "cop-dem-glo-30"
+  
 aws:
   aws_unsigned: False
   aws_request_payer: True

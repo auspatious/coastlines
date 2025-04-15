@@ -42,6 +42,9 @@ class Options(BaseModel):
     tide_centre: float = 0.0
     load_buffer_distance: int = 5000
 
+class HillShade(BaseModel):
+    stac_catalog: str = "https://earth-search.aws.element84.com/v1"
+    stac_collection: str = "cop-dem-glo-30"
 
 class CoastlinesConfig(BaseModel):
     input: Input

@@ -29,6 +29,8 @@ class Options(BaseModel):
     end_year: int = 2023
     baseline_year: int = 2021
 
+    tide_model: str = "FES2014"
+
     water_index: str = "mndwi"
     index_threshold: float = 0.0
     include_nir: bool = True

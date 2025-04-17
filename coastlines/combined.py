@@ -306,7 +306,7 @@ def terrain_shadow(
 def mask_pixels_by_hillshadow(
     ds: xr.Dataset,
     items: ItemCollection,
-    stac_catalog: str = "https://planetarycomputer.microsoft.com/api/stac/v1/",
+    stac_catalog: str = "https://earth-search.aws.element84.com/v1/",
     stac_collection: str = "cop-dem-glo-30",
     debug: bool = False,
 ) -> xr.Dataset:
@@ -654,11 +654,18 @@ def process_coastlines(
     data = mask_pixels_by_tide(data, tide_data_location, config.options.tide_centre, config.options.tide_model)
 
     if config.options.mask_with_hillshade:
+        warning_message = "No DEM found for this area. Skipping hillshadow mask"
         log.info("Running per-pixel terrain shadow masking")
-        try:
-            data = mask_pixels_by_hillshadow(data, items, config.hillshade.stac_catalog, config.hillshade.stac_collection)
-        except CoastlinesException:
-            log.warning("No DEM found for this area. Skipping hillshadow mask")
+        if config.hillshade != None:
+            try:
+                data = mask_pixels_by_hillshadow(data, items, config.hillshade.stac_catalog, config.hillshade.stac_collection)
+            except CoastlinesException:
+                log.warning(warning_message)
+        else:
+            try:
+                data = mask_pixels_by_hillshadow(data, items)
+            except CoastlinesException:
+                log.warning(warning_message)
 
     # Loading combined yearly composites
     log.info("Generating yearly composites")

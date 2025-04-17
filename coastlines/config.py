@@ -43,14 +43,15 @@ class Options(BaseModel):
     load_buffer_distance: int = 5000
 
 class HillShade(BaseModel):
-    stac_catalog: str = "https://earth-search.aws.element84.com/v1"
-    stac_collection: str = "cop-dem-glo-30"
+    stac_catalog: str | None = None
+    stac_collection: str | None = None
 
 class CoastlinesConfig(BaseModel):
     input: Input
     output: Output
     options: Options
 
+    hillshade: HillShade | None = None
     virtual_product: bool | None = None
     stac: STAC | None = None
     aws: AWS | None = None

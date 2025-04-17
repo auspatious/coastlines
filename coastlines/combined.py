@@ -656,7 +656,7 @@ def process_coastlines(
     if config.options.mask_with_hillshade:
         warning_message = "No DEM found for this area. Skipping hillshadow mask"
         log.info("Running per-pixel terrain shadow masking")
-        if config.hillshade != None:
+        if config.hillshade is not None:
             try:
                 data = mask_pixels_by_hillshadow(data, items, config.hillshade.stac_catalog, config.hillshade.stac_collection)
             except CoastlinesException:

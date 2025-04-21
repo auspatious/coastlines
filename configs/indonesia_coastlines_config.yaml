@@ -15,7 +15,7 @@ stac:
   upper_scene_limit: 2000
 
 options:
-  start_year: 2008
+  start_year: 1980
   end_year: 2023
   baseline_year: 2021
 

@@ -21,6 +21,7 @@ REQUIRED = [
     "click",
     "datacube[s3,performance]",
     "dea_tools>=0.3.5",
+    "eo_tides",
     "Fiona",
     "geopandas",
     "matplotlib",

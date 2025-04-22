@@ -161,6 +161,8 @@ distributed==2024.5.1
     #   dask-ml
     #   datacube
     #   odc-algo
+eo-tides==0.0.15
+    # via coastlines (setup.py)
 executing==2.0.1
     # via stack-data
 fiona==1.9.6
@@ -198,6 +200,7 @@ geopandas==0.14.4
     # via
     #   coastlines (setup.py)
     #   dea-tools
+    #   eo-tides
 geopy==2.4.1
     # via dea-tools
 greenlet==3.1.1
@@ -334,6 +337,7 @@ numpy==1.26.4
     #   datacube
     #   datacube-ows
     #   dea-tools
+    #   eo-tides
     #   folium
     #   geopandas
     #   hdstats
@@ -365,10 +369,11 @@ numpy==1.26.4
     #   xarray
 odc-algo==0.2.3
     # via odc-ui
-odc-geo==0.4.5
+odc-geo[xr]==0.4.5
     # via
     #   coastlines (setup.py)
     #   dea-tools
+    #   eo-tides
     #   odc-stac
 odc-stac==0.3.9
     # via dea-tools
@@ -407,6 +412,7 @@ pandas==2.2.2
     #   dask-ml
     #   datacube
     #   dea-tools
+    #   eo-tides
     #   geopandas
     #   mapclassify
     #   odc-stac
@@ -471,6 +477,7 @@ pyproj==3.6.1
     #   coastlines (setup.py)
     #   datacube
     #   dea-tools
+    #   eo-tides
     #   geopandas
     #   odc-geo
     #   pytmd
@@ -507,6 +514,7 @@ pytmd==2.1.6
     # via
     #   coastlines (setup.py)
     #   dea-tools
+    #   eo-tides
 pytz==2024.1
     # via
     #   coastlines (setup.py)
@@ -578,6 +586,7 @@ scikit-learn==1.5.0
     #   dask-glm
     #   dask-ml
     #   dea-tools
+    #   eo-tides
     #   mapclassify
 scipy==1.13.1
     # via
@@ -587,6 +596,7 @@ scipy==1.13.1
     #   dask-ml
     #   datacube-ows
     #   dea-tools
+    #   eo-tides
     #   hdstats
     #   mapclassify
     #   pytmd
@@ -604,6 +614,7 @@ shapely==2.0.4
     #   coastlines (setup.py)
     #   datacube
     #   dea-tools
+    #   eo-tides
     #   geopandas
     #   odc-geo
     #   rasterstats
@@ -658,6 +669,7 @@ tqdm==4.66.4
     # via
     #   coastlines (setup.py)
     #   dea-tools
+    #   eo-tides
 traitlets==5.14.3
     # via
     #   comm
@@ -696,6 +708,7 @@ xarray==2024.5.0
     #   datacube-ows
     #   dea-tools
     #   odc-algo
+    #   odc-geo
     #   odc-stac
     #   odc-ui
     #   rioxarray

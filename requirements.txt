@@ -147,7 +147,7 @@ datacube[performance,s3]==1.8.18
     #   odc-ui
 datacube-ows==1.8.40
     # via dea-tools
-dea-tools==0.3.5
+dea-tools==0.3.6
     # via coastlines (setup.py)
 decorator==5.1.1
     # via ipython

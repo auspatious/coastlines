@@ -38,8 +38,8 @@ RUN apt-get update \
     rm -rf /var/lib/{apt,dpkg,cache,log}
 
 COPY requirements.txt /tmp/
-RUN python3 -m pip install --no-cache-dir --upgrade pip \
-    && python3 -m pip install --no-cache-dir -r /tmp/requirements.txt \
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
     --no-binary rasterio \
     --no-binary fiona
 

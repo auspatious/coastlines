@@ -20,6 +20,8 @@ RUN apt-get update \
     && virtualenv /virtualenv/python3.11 \
     && . /virtualenv/python3.11/bin/activate \
     && apt-get install -y \
+    # python 3.11
+    python3.11 \
     # Build tools
     build-essential \
     git \

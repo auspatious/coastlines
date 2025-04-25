@@ -1,8 +1,24 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.1
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.9.0
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
+# These settings prevent a timezone prompt when Python installs
+# Use this article to find your time zone (TZ):
+# https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+ENV TZ=Australia/Hobart \
+    DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update \
+    && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa
+    
+RUN apt-get update \
+    # Python virt environment
+    && apt-get install -y --no-install-recommends \
+        virtualenv \
+    && mkdir /virtualenv \
+    && virtualenv /virtualenv/python3.11 \
+    && . /virtualenv/python3.11/bin/activate \
     && apt-get install -y \
     # Build tools
     build-essential \
@@ -21,9 +37,12 @@ RUN apt-get update \
     apt-get autoremove && \
     rm -rf /var/lib/{apt,dpkg,cache,log}
 
+ENV VIRTUAL_ENV /virtualenv/python3.11
+ENV PATH /virtualenv/python3.11/bin:$PATH
+
 COPY requirements.txt /tmp/
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r /tmp/requirements.txt \
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir -r /tmp/requirements.txt \
     --no-binary rasterio \
     --no-binary fiona
 

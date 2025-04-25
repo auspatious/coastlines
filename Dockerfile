@@ -2,7 +2,7 @@ FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.1
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
-RUN add-apt-repository ppa:deadsnakes/ppa \
+RUN sudo add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update \
     && apt-get install -y \
     # Python 3.11

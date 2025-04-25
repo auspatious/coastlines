@@ -2,6 +2,12 @@ FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.1
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
+# These settings prevent a timezone prompt when Python installs
+# Use this article to find your time zone (TZ):
+# https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+ENV TZ=Australia/Hobart \
+    DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update \
     && apt-get install -y software-properties-common \
     && add-apt-repository ppa:deadsnakes/ppa

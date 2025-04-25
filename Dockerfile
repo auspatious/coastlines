@@ -1,4 +1,4 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.9.0
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.1
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
@@ -21,7 +21,7 @@ RUN apt-get update \
     && . /virtualenv/python3.11/bin/activate \
     && apt-get install -y \
     # python 3.11
-    python3.11 \
+    python3.11 \ 
     # Build tools
     build-essential \
     git \

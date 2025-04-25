@@ -37,9 +37,12 @@ RUN apt-get update \
     apt-get autoremove && \
     rm -rf /var/lib/{apt,dpkg,cache,log}
 
+ENV VIRTUAL_ENV /virtualenv/python3.11
+ENV PATH /virtualenv/python3.11/bin:$PATH
+
 COPY requirements.txt /tmp/
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r /tmp/requirements.txt \
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir -r /tmp/requirements.txt \
     --no-binary rasterio \
     --no-binary fiona
 

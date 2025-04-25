@@ -1,4 +1,4 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.1
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.9.0
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
@@ -13,9 +13,13 @@ RUN apt-get update \
     && add-apt-repository ppa:deadsnakes/ppa
     
 RUN apt-get update \
+    # Python virt environment
+    && apt-get install -y --no-install-recommends \
+        virtualenv \
+    && mkdir /virtualenv \
+    && virtualenv /virtualenv/python3.11 \
+    && . /virtualenv/python3.11/bin/activate \
     && apt-get install -y \
-    # Python 3.11
-    python3.11 \
     # Build tools
     build-essential \
     git \

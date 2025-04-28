@@ -20,9 +20,15 @@ aiohttp==3.9.5
     #   dea-tools
 aiosignal==1.3.1
     # via aiohttp
+alembic==1.15.2
+    # via datacube
 annotated-types==0.7.0
     # via pydantic
-asttokens==2.4.1
+antimeridian==0.4.1
+    # via
+    #   datacube
+    #   datacube-ows
+asttokens==3.0.0
     # via stack-data
 attrs==23.2.0
     # via
@@ -32,14 +38,16 @@ attrs==23.2.0
     #   jsonschema
     #   rasterio
     #   referencing
-babel==2.15.0
+babel==2.17.0
     # via
     #   datacube-ows
     #   flask-babel
-blinker==1.8.2
+blinker==1.9.0
     # via flask
 bokeh==3.4.1
-    # via coastlines (setup.py)
+    # via
+    #   coastlines (setup.py)
+    #   dask
 boto3==1.34.114
     # via
     #   datacube
@@ -52,9 +60,9 @@ botocore==1.34.114
     #   datacube
     #   dea-tools
     #   s3transfer
-bottleneck==1.3.8
+bottleneck==1.4.2
     # via datacube
-branca==0.7.2
+branca==0.8.1
     # via
     #   dea-tools
     #   folium
@@ -67,16 +75,17 @@ certifi==2024.2.2
     # via
     #   fiona
     #   netcdf4
+    #   pyogrio
     #   pyproj
     #   rasterio
     #   requests
-cffi==1.16.0
+cffi==1.17.1
     # via timezonefinder
 cftime==1.6.3
     # via netcdf4
-charset-normalizer==3.3.2
+charset-normalizer==3.4.1
     # via requests
-ciso8601==2.3.1
+ciso8601==2.3.2
     # via
     #   datacube
     #   dea-tools
@@ -103,12 +112,14 @@ cligj==0.7.2
     #   fiona
     #   rasterio
     #   rasterstats
-cloudpickle==3.0.0
+cloudpickle==3.1.1
     # via
     #   dask
     #   dask-glm
     #   datacube
     #   distributed
+colorama==0.4.6
+    # via eo-tides
 colour==0.1.5
     # via datacube-ows
 comm==0.2.2
@@ -119,64 +130,65 @@ contourpy==1.2.1
     #   matplotlib
 cycler==0.12.1
     # via matplotlib
-dask[array,dataframe]==2024.5.1
+dask[array,complete,dataframe,diagnostics,distributed]==2025.4.0
     # via
-    #   dask-expr
     #   dask-glm
     #   dask-image
     #   dask-ml
     #   datacube
     #   dea-tools
     #   distributed
+    #   eo-tides
     #   odc-algo
+    #   odc-loader
     #   odc-stac
-dask-expr==1.1.1
-    # via dask
 dask-glm==0.3.2
     # via dask-ml
 dask-image==2024.5.3
     # via odc-algo
 dask-ml==2024.4.4
     # via dea-tools
-datacube[performance,s3]==1.8.18
+datacube[performance,s3]==1.9.3
     # via
     #   coastlines (setup.py)
     #   datacube-ows
     #   dea-tools
     #   odc-algo
     #   odc-ui
-datacube-ows==1.8.40
+datacube-ows==1.9.0
     # via dea-tools
-dea-tools==0.3.5
+dea-tools==0.3.6
     # via coastlines (setup.py)
-decorator==5.1.1
+decorator==5.2.1
     # via ipython
-deepdiff==7.0.1
+deepdiff==8.4.2
     # via datacube-ows
-deprecat==2.1.1
+deprecat==2.1.3
     # via datacube
-distributed==2024.5.1
+distributed==2025.4.0
     # via
+    #   dask
     #   dask-glm
     #   dask-ml
     #   datacube
     #   odc-algo
-executing==2.0.1
+eo-tides==0.6.4
+    # via coastlines (setup.py)
+executing==2.2.0
     # via stack-data
 fiona==1.9.6
     # via
     #   coastlines (setup.py)
     #   dea-tools
-    #   geopandas
     #   rasterstats
-flask==3.0.3
+flask==3.1.0
     # via
     #   datacube-ows
     #   flask-babel
     #   prometheus-flask-exporter
 flask-babel==4.0.0
     # via datacube-ows
-folium==0.16.0
+folium==0.19.5
     # via dea-tools
 fonttools==4.52.4
     # via matplotlib
@@ -184,25 +196,26 @@ frozenlist==1.4.1
     # via
     #   aiohttp
     #   aiosignal
-fsspec==2024.5.0
+fsspec==2025.3.2
     # via
     #   dask
     #   datacube-ows
-geoalchemy2==0.15.1
+geoalchemy2==0.17.1
     # via
     #   datacube
     #   datacube-ows
 geographiclib==2.0
     # via geopy
-geopandas==0.14.4
+geopandas==1.0.1
     # via
     #   coastlines (setup.py)
     #   dea-tools
+    #   eo-tides
 geopy==2.4.1
     # via dea-tools
-greenlet==3.1.1
+greenlet==3.2.1
     # via sqlalchemy
-h3==3.7.7
+h3==4.2.2
     # via timezonefinder
 hdstats==0.2.1
     # via dea-tools
@@ -214,16 +227,20 @@ imageio==2.34.1
     # via
     #   pims
     #   scikit-image
-importlib-metadata==7.1.0
-    # via dask
-ipyleaflet==0.19.1
+importlib-metadata==8.6.1
+    # via
+    #   dask
+    #   datacube-ows
+ipyleaflet==0.19.2
     # via odc-ui
-ipython==8.24.0
+ipython==9.1.0
     # via
     #   ipywidgets
     #   jupyter-ui-poll
     #   odc-ui
-ipywidgets==8.1.3
+ipython-pygments-lexers==1.1.1
+    # via ipython
+ipywidgets==8.1.6
     # via
     #   ipyleaflet
     #   odc-ui
@@ -231,12 +248,13 @@ iso8601==2.1.0
     # via pyows
 itsdangerous==2.2.0
     # via flask
-jedi==0.19.1
+jedi==0.19.2
     # via ipython
 jinja2==3.1.4
     # via
     #   bokeh
     #   branca
+    #   dask
     #   distributed
     #   flask
     #   flask-babel
@@ -249,27 +267,27 @@ joblib==1.4.2
     # via
     #   dea-tools
     #   scikit-learn
-jsonschema==4.22.0
+jsonschema==4.23.0
     # via
     #   datacube
     #   pystac
-jsonschema-specifications==2023.12.1
+jsonschema-specifications==2025.4.1
     # via jsonschema
-jupyter-leaflet==0.19.1
+jupyter-leaflet==0.19.2
     # via ipyleaflet
-jupyter-ui-poll==0.2.2
+jupyter-ui-poll==1.0.0
     # via odc-ui
-jupyterlab-widgets==3.0.11
+jupyterlab-widgets==3.0.14
     # via ipywidgets
 kiwisolver==1.4.5
     # via matplotlib
-lark==1.1.9
+lark==1.2.2
     # via
     #   datacube
     #   datacube-ows
 lazy-loader==0.4
     # via scikit-image
-llvmlite==0.42.0
+llvmlite==0.44.0
     # via numba
 locket==1.0.0
     # via
@@ -283,21 +301,27 @@ lxml==5.2.2
     #   pyows
     #   pytmd
     #   timescale
+lz4==4.4.4
+    # via dask
+mako==1.3.10
+    # via alembic
 mapclassify==2.6.1
     # via coastlines (setup.py)
 markupsafe==2.1.5
     # via
     #   jinja2
+    #   mako
     #   werkzeug
 matplotlib==3.9.0
     # via
     #   coastlines (setup.py)
     #   datacube-ows
     #   dea-tools
+    #   eo-tides
     #   odc-ui
 matplotlib-inline==0.1.7
     # via ipython
-msgpack==1.0.8
+msgpack==1.1.0
     # via distributed
 multidict==6.0.5
     # via
@@ -308,21 +332,20 @@ multipledispatch==1.0.0
     #   dask-glm
     #   dask-ml
 netcdf4==1.6.5
-    # via
-    #   datacube
-    #   pytmd
+    # via pytmd
 networkx==3.3
     # via
     #   mapclassify
     #   scikit-image
-numba==0.59.1
+numba==0.61.2
     # via
     #   dask-ml
     #   sparse
-numexpr==2.10.0
+numexpr==2.10.2
     # via odc-algo
 numpy==1.26.4
     # via
+    #   antimeridian
     #   bokeh
     #   bottleneck
     #   cftime
@@ -334,6 +357,7 @@ numpy==1.26.4
     #   datacube
     #   datacube-ows
     #   dea-tools
+    #   eo-tides
     #   folium
     #   geopandas
     #   hdstats
@@ -345,11 +369,13 @@ numpy==1.26.4
     #   numexpr
     #   odc-algo
     #   odc-geo
+    #   odc-loader
     #   odc-stac
     #   odc-ui
     #   pandas
     #   pims
     #   pyarrow
+    #   pyogrio
     #   pytmd
     #   rasterio
     #   rasterstats
@@ -365,20 +391,27 @@ numpy==1.26.4
     #   xarray
 odc-algo==0.2.3
     # via odc-ui
-odc-geo==0.4.5
+odc-geo==0.4.10
+    # via
+    #   coastlines (setup.py)
+    #   datacube
+    #   dea-tools
+    #   eo-tides
+    #   odc-loader
+    #   odc-stac
+odc-loader==0.5.1
+    # via odc-stac
+odc-stac==0.4.0rc4
     # via
     #   coastlines (setup.py)
     #   dea-tools
-    #   odc-stac
-odc-stac==0.3.9
-    # via dea-tools
 odc-ui==0.2.1
     # via
     #   coastlines (setup.py)
     #   dea-tools
-ordered-set==4.1.0
+orderly-set==5.4.0
     # via deepdiff
-owslib==0.31.0
+owslib==0.33.0
     # via dea-tools
 packaging==24.0
     # via
@@ -392,7 +425,9 @@ packaging==24.0
     #   geopandas
     #   lazy-loader
     #   matplotlib
+    #   pims
     #   planetary-computer
+    #   pyogrio
     #   rioxarray
     #   scikit-image
     #   setuptools-scm
@@ -402,11 +437,11 @@ pandas==2.2.2
     #   bokeh
     #   coastlines (setup.py)
     #   dask
-    #   dask-expr
     #   dask-image
     #   dask-ml
     #   datacube
     #   dea-tools
+    #   eo-tides
     #   geopandas
     #   mapclassify
     #   odc-stac
@@ -425,30 +460,30 @@ pillow==10.3.0
     #   imageio
     #   matplotlib
     #   scikit-image
-pims==0.6.1
+pims==0.7
     # via dask-image
 planetary-computer==1.0.0
     # via dea-tools
-prometheus-client==0.20.0
+prometheus-client==0.21.1
     # via prometheus-flask-exporter
-prometheus-flask-exporter==0.23.0
+prometheus-flask-exporter==0.23.2
     # via datacube-ows
-prompt-toolkit==3.0.45
+prompt-toolkit==3.0.51
     # via ipython
-psutil==5.9.8
-    # via distributed
-psycopg2==2.9.9
+psutil==7.0.0
     # via
-    #   datacube
-    #   datacube-ows
+    #   distributed
+    #   eo-tides
+psycopg2==2.9.10
+    # via datacube-ows
 ptyprocess==0.7.0
     # via pexpect
-pure-eval==0.2.2
+pure-eval==0.2.3
     # via stack-data
 pyarrow==16.1.0
     # via
     #   coastlines (setup.py)
-    #   dask-expr
+    #   dask
 pycparser==2.22
     # via cffi
 pydantic==2.7.2
@@ -457,30 +492,37 @@ pydantic==2.7.2
     #   planetary-computer
 pydantic-core==2.18.3
     # via pydantic
-pygments==2.18.0
-    # via ipython
-pyows==0.2.7
+pygments==2.19.1
+    # via
+    #   ipython
+    #   ipython-pygments-lexers
+pyogrio==0.10.0
+    # via
+    #   eo-tides
+    #   geopandas
+pyows==0.3.1
     # via datacube-ows
 pyparsing==3.1.2
     # via
     #   datacube-ows
     #   matplotlib
     #   rasterio
-pyproj==3.6.1
+pyproj==3.7.1
     # via
     #   coastlines (setup.py)
     #   datacube
     #   dea-tools
+    #   eo-tides
     #   geopandas
     #   odc-geo
     #   pytmd
     #   rioxarray
-pystac[validation]==1.10.1
+pystac[validation]==1.13.0
     # via
     #   odc-stac
     #   planetary-computer
     #   pystac-client
-pystac-client==0.8.1
+pystac-client==0.8.6
     # via
     #   dea-tools
     #   planetary-computer
@@ -497,23 +539,23 @@ python-dateutil==2.9.0.post0
     #   pystac-client
     #   pytmd
     #   timescale
-python-dotenv==1.0.1
+python-dotenv==1.1.0
     # via planetary-computer
 python-geohash==0.8.5
     # via coastlines (setup.py)
 python-slugify==8.0.4
     # via datacube-ows
-pytmd==2.1.6
+pytmd==2.2.2
     # via
     #   coastlines (setup.py)
     #   dea-tools
+    #   eo-tides
 pytz==2024.1
     # via
     #   coastlines (setup.py)
     #   datacube-ows
     #   dea-tools
     #   flask-babel
-    #   owslib
     #   pandas
     #   planetary-computer
 pyyaml==6.0.1
@@ -531,19 +573,20 @@ rasterio==1.4.3
     #   datacube-ows
     #   dea-tools
     #   odc-algo
+    #   odc-loader
     #   odc-stac
     #   odc-ui
     #   rasterstats
     #   rioxarray
-rasterstats==0.19.0
+rasterstats==0.20.0
     # via dea-tools
-referencing==0.35.1
+referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
-regex==2024.5.15
+regex==2024.11.6
     # via datacube-ows
-requests==2.32.2
+requests==2.32.3
     # via
     #   datacube-ows
     #   dea-tools
@@ -555,13 +598,13 @@ rioxarray==0.15.5
     # via
     #   coastlines (setup.py)
     #   dea-tools
-rpds-py==0.18.1
+rpds-py==0.24.0
     # via
     #   jsonschema
     #   referencing
-ruamel-yaml==0.18.6
+ruamel-yaml==0.18.10
     # via datacube
-ruamel-yaml-clib==0.2.8
+ruamel-yaml-clib==0.2.12
     # via ruamel-yaml
 s3path==0.5.7
     # via coastlines (setup.py)
@@ -578,8 +621,9 @@ scikit-learn==1.5.0
     #   dask-glm
     #   dask-ml
     #   dea-tools
+    #   eo-tides
     #   mapclassify
-scipy==1.13.1
+scipy==1.15.2
     # via
     #   coastlines (setup.py)
     #   dask-glm
@@ -587,31 +631,32 @@ scipy==1.13.1
     #   dask-ml
     #   datacube-ows
     #   dea-tools
+    #   eo-tides
     #   hdstats
     #   mapclassify
     #   pytmd
     #   scikit-image
     #   scikit-learn
-    #   sparse
     #   timescale
 setuptools-scm==8.1.0
     # via
     #   datacube-ows
     #   pytmd
     #   timescale
-shapely==2.0.4
+shapely==2.1.0
     # via
+    #   antimeridian
     #   coastlines (setup.py)
     #   datacube
     #   dea-tools
+    #   eo-tides
     #   geopandas
     #   odc-geo
     #   rasterstats
-simplejson==3.19.2
+simplejson==3.20.1
     # via rasterstats
 six==1.16.0
     # via
-    #   asttokens
     #   fiona
     #   python-dateutil
 slicerator==1.1.0
@@ -620,15 +665,16 @@ smart-open==7.0.4
     # via s3path
 sortedcontainers==2.4.0
     # via distributed
-sparse==0.15.4
+sparse==0.16.0
     # via dask-glm
-sqlalchemy==1.4.52
+sqlalchemy==2.0.40
     # via
+    #   alembic
     #   datacube
     #   geoalchemy2
 stack-data==0.6.3
     # via ipython
-tblib==3.0.0
+tblib==3.1.0
     # via distributed
 text-unidecode==1.3
     # via python-slugify
@@ -637,12 +683,15 @@ threadpoolctl==3.5.0
 tifffile==2024.5.22
     # via
     #   dask-image
+    #   pims
     #   scikit-image
 timescale==0.0.6
-    # via pytmd
-timezonefinder==6.5.0
+    # via
+    #   eo-tides
+    #   pytmd
+timezonefinder==6.5.9
     # via datacube-ows
-toolz==0.12.1
+toolz==1.0.0
     # via
     #   dask
     #   datacube
@@ -658,6 +707,7 @@ tqdm==4.66.4
     # via
     #   coastlines (setup.py)
     #   dea-tools
+    #   eo-tides
 traitlets==5.14.3
     # via
     #   comm
@@ -669,9 +719,13 @@ traittypes==0.2.1
     # via ipyleaflet
 typing-extensions==4.12.0
     # via
+    #   alembic
     #   ipython
+    #   odc-stac
     #   pydantic
     #   pydantic-core
+    #   referencing
+    #   sqlalchemy
 tzdata==2024.1
     # via pandas
 urllib3==2.2.1
@@ -681,9 +735,9 @@ urllib3==2.2.1
     #   requests
 wcwidth==0.2.13
     # via prompt-toolkit
-werkzeug==3.0.3
+werkzeug==3.1.3
     # via flask
-widgetsnbextension==4.0.11
+widgetsnbextension==4.0.14
     # via ipywidgets
 wrapt==1.16.0
     # via
@@ -695,7 +749,9 @@ xarray==2024.5.0
     #   datacube
     #   datacube-ows
     #   dea-tools
+    #   eo-tides
     #   odc-algo
+    #   odc-loader
     #   odc-stac
     #   odc-ui
     #   rioxarray
@@ -708,7 +764,7 @@ yarl==1.9.4
     # via aiohttp
 zict==3.0.0
     # via distributed
-zipp==3.19.0
+zipp==3.21.0
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:

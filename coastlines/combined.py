@@ -8,7 +8,7 @@ import click
 import geopandas as gpd
 import xarray as xr
 from datacube.utils.dask import start_local_dask
-from dea_tools.coastal import pixel_tides
+from eo_tides.eo import pixel_tides
 from dea_tools.spatial import hillshade, subpixel_contours
 from odc.algo import mask_cleanup, to_f32
 from odc.stac import configure_s3_access, load
@@ -343,8 +343,12 @@ def mask_pixels_by_hillshadow(
 def mask_pixels_by_tide(
     ds: xr.Dataset, tide_data_location: str, tide_centre: float, tide_model: str, debug: bool = False
 ) -> xr.Dataset:
-    tides, tides_lowres = pixel_tides(
-        ds, resample=True, directory=tide_data_location, dask_compute=True, model=tide_model
+    tides_lowres = pixel_tides(
+        ds, resample=False, directory=tide_data_location, dask_compute=True, model=tide_model
+    )
+
+    tides = pixel_tides(
+        ds, directory=tide_data_location, dask_compute=True, model=tide_model
     )
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(

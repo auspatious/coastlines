@@ -28,6 +28,7 @@ REQUIRED = [
     "mapclassify",
     "numpy",
     "odc-geo",
+    "odc-stac==0.4.0rc4",
     "odc_ui",
     "pandas",
     "pyarrow",

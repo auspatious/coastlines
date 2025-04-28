@@ -140,6 +140,7 @@ dask[array,complete,dataframe,diagnostics,distributed]==2025.4.0
     #   distributed
     #   eo-tides
     #   odc-algo
+    #   odc-loader
     #   odc-stac
 dask-glm==0.3.2
     # via dask-ml
@@ -368,6 +369,7 @@ numpy==1.26.4
     #   numexpr
     #   odc-algo
     #   odc-geo
+    #   odc-loader
     #   odc-stac
     #   odc-ui
     #   pandas
@@ -395,9 +397,14 @@ odc-geo==0.4.10
     #   datacube
     #   dea-tools
     #   eo-tides
+    #   odc-loader
     #   odc-stac
-odc-stac==0.3.11
-    # via dea-tools
+odc-loader==0.5.1
+    # via odc-stac
+odc-stac==0.4.0rc4
+    # via
+    #   coastlines (setup.py)
+    #   dea-tools
 odc-ui==0.2.1
     # via
     #   coastlines (setup.py)
@@ -566,6 +573,7 @@ rasterio==1.4.3
     #   datacube-ows
     #   dea-tools
     #   odc-algo
+    #   odc-loader
     #   odc-stac
     #   odc-ui
     #   rasterstats
@@ -713,6 +721,7 @@ typing-extensions==4.12.0
     # via
     #   alembic
     #   ipython
+    #   odc-stac
     #   pydantic
     #   pydantic-core
     #   referencing
@@ -742,6 +751,7 @@ xarray==2024.5.0
     #   dea-tools
     #   eo-tides
     #   odc-algo
+    #   odc-loader
     #   odc-stac
     #   odc-ui
     #   rioxarray

@@ -1,4 +1,4 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.1
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.9.0
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
@@ -13,15 +13,10 @@ RUN apt-get update \
     && add-apt-repository ppa:deadsnakes/ppa
     
 RUN apt-get update \
-    # Python virt environment
-    && apt-get install -y --no-install-recommends \
-        virtualenv \
-    && mkdir /virtualenv \
-    && virtualenv /virtualenv/python3.11 \
-    && . /virtualenv/python3.11/bin/activate \
     && apt-get install -y \
     # python 3.11
-    python3.11 \ 
+    python3.11 \
+    python3.11-venv \
     # Build tools
     build-essential \
     git \
@@ -29,7 +24,7 @@ RUN apt-get update \
     # Convenience
     wget nano \
     # For Psycopg2
-    libpq-dev python3-dev \
+    libpq-dev python3.11-dev \
     # For SSL
     ca-certificates \
     # for pg_isready
@@ -39,8 +34,10 @@ RUN apt-get update \
     apt-get autoremove && \
     rm -rf /var/lib/{apt,dpkg,cache,log}
 
-ENV VIRTUAL_ENV /virtualenv/python3.11
-ENV PATH /virtualenv/python3.11/bin:$PATH
+# Python virt environment
+ENV VIRTUAL_ENV=/.envs/python311
+RUN python3.11 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt /tmp/
 RUN python -m pip install --no-cache-dir --upgrade pip \
@@ -54,7 +51,7 @@ RUN mkdir -p $APPDIR
 WORKDIR $APPDIR
 ADD . $APPDIR
 
-RUN pip install .
+RUN python -m pip install .
 
 CMD ["python", "--version"]
 

@@ -166,6 +166,7 @@ def load_and_mask_data_with_stac(
 
     # Hack to remove some bad items
     items = [i for i in items if i.id not in BAD_IDS]
+    print(items)
 
     epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
     epsg_code = epsg_codes.most_common(1)[0][0]

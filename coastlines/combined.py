@@ -170,7 +170,7 @@ def load_and_mask_data_with_stac(
     for i in items:
         print(i.properties)
 
-    epsg_codes = Counter(item.properties["proj:epsg"] for item in items)
+    epsg_codes = Counter(item.properties["proj:code"] for item in items)
     epsg_code = epsg_codes.most_common(1)[0][0]
 
     bands = ["green", "swir16", "qa_pixel"]

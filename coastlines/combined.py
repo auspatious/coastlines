@@ -166,9 +166,6 @@ def load_and_mask_data_with_stac(
 
     # Hack to remove some bad items
     items = [i for i in items if i.id not in BAD_IDS]
-    print(items)
-    for i in items:
-        print(i.properties)
 
     epsg_codes = Counter(item.properties["proj:code"] for item in items)
     epsg_code = epsg_codes.most_common(1)[0][0]
@@ -616,12 +613,7 @@ def process_coastlines(
     log.info(f"Loaded geometry for study area {study_area}")
 
     # Config shenanigans
-    bbox = list(
-        geometry.to_crs(config.output.crs)
-        .buffer(config.options.load_buffer_distance)
-        .to_crs("epsg:4326")
-        .bounds.values[0]
-    )
+    bbox = geometry.to_crs(config.output.crs).buffer(config.options.load_buffer_distance).to_crs("epsg:4326").bounds.values[0]
     log.info(f"Using bounding box: {bbox}")
 
     # Either use the MNDWI index or the combined index

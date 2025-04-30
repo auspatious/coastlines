@@ -168,7 +168,7 @@ def write_files(
 
         # Handy built-in styles
         styles = read_file(
-            STYLES_FILE
+            STYLES_FILE, GEOM_POSSIBLE_NAMES="geometry"
         )
         styles.to_file(temp_geopackage, layer="layer_styles", driver="GPKG")
 

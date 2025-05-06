@@ -19,7 +19,7 @@ options:
   end_year: 2023
   baseline_year: 2021
 
-  tide_model: "FES2022"
+  tide_model: "EOT20"
 
   water_index: "mndwi_nir"
   index_threshold: 0.65

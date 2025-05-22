@@ -15,6 +15,7 @@ from odc.stac import configure_s3_access, load
 from pystac import ItemCollection
 from pystac_client import Client
 from s3path import S3Path
+# from dea_tools.datahandling import parallel_apply
 
 from coastlines.config import CoastlinesConfig
 
@@ -291,7 +292,8 @@ def terrain_shadow(
     threshold: float = 0.25,
     radius: int = 1,
 ):
-    item = items_by_time[ds.time.values.astype(str).split(".")[0]]
+    item = items_by_time[ds.time.values.astype(str)[0].split(".")[0]]
+
     elevation = item.properties["view:sun_elevation"]
     azimuth = item.properties["view:sun_azimuth"]
 
@@ -341,14 +343,14 @@ def mask_pixels_by_hillshadow(
 
 
 def mask_pixels_by_tide(
-    ds: xr.Dataset, tide_data_location: str, tide_centre: float, tide_model: str, debug: bool = False
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float, tide_model: str, ensemble_model_list: list[str], ensemble_model_rankings: str, debug: bool = False
 ) -> xr.Dataset:
     tides_lowres = pixel_tides(
-        ds, resample=False, directory=tide_data_location, dask_compute=True, model=tide_model
+        ds, resample=False, directory=tide_data_location, dask_compute=True, model=tide_model, ensemble_models=ensemble_model_list, ranking_points=ensemble_model_rankings
     )
 
     tides = pixel_tides(
-        ds, directory=tide_data_location, dask_compute=True, model=tide_model
+        ds, directory=tide_data_location, dask_compute=True, model=tide_model, ensemble_models=ensemble_model_list, ranking_points=ensemble_model_rankings
     )
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
@@ -367,10 +369,10 @@ def mask_pixels_by_tide(
 
 
 def filter_by_tides(
-    ds: xr.Dataset, tide_data_location: str, tide_centre: float, tide_model: str
+    ds: xr.Dataset, tide_data_location: str, tide_centre: float, tide_model: str, ensemble_model_list: list[str], ensemble_model_rankings: str
 ) -> xr.Dataset:
     """Filter out scenes that are wholy covered by extreme tides"""
-    tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location, model=tide_model)
+    tides_lowres = pixel_tides(ds, resample=False, directory=tide_data_location, model=tide_model, ensemble_models=ensemble_model_list, ranking_points=ensemble_model_rankings)
 
     tide_cutoff_min, tide_cutoff_max = tide_cutoffs(
         ds, tides_lowres, tide_centre=tide_centre, reproject=False
@@ -660,9 +662,9 @@ def process_coastlines(
     if config.options.mask_with_hillshade:
         warning_message = "No DEM found for this area. Skipping hillshadow mask"
         log.info("Running per-pixel terrain shadow masking")
-        if config.hillshade is not None:
+        if config.options.hillshade_stac_catalog is not None and config.options.hillshade_stac_catalog  is not None:
             try:
-                data = mask_pixels_by_hillshadow(data, items, config.hillshade.stac_catalog, config.hillshade.stac_collection)
+                data = mask_pixels_by_hillshadow(data, items, config.options.hillshade_stac_catalog, config.options_hillshade_stac_collection)
             except CoastlinesException:
                 log.warning(warning_message)
         else:

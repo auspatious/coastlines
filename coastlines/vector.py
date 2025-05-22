@@ -174,6 +174,9 @@ def ocean_masking(ds, ocean_da, connectivity=1, dilation_size=None):
         An array containing the a mask consisting of identified ocean
         pixels as True.
     """
+    # Squeeze out dimension as required
+    ds = ds.squeeze()
+
     # Update `ocean_da` to mask out any pixels that are land in `ds` too
     ocean_da = ocean_da & (ds != 1)
 
@@ -399,15 +402,18 @@ def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.25, sieve_si
     # their neighbours
     raster_mask = (
         high_stdev.where(~low_obs, 2)
-        .groupby("year")
-        .apply(lambda x: sieve(x.values.astype(np.int16), size=sieve_size))
+        #.groupby("year")
+        #.apply(lambda x: sieve(x.values.astype(np.int16), size=sieve_size))
     )
+
+
 
     # Apply greyscale dilation to expand masked pixels to err on
     # the side of overclassifying certainty issues
-    raster_mask = raster_mask.groupby("year").apply(
-        lambda x: dilation(x.values, disk(3))
-    )
+    
+    # raster_mask = raster_mask.groupby("year").apply(
+    #     lambda x: dilation(x.values, disk(3))
+    # )
 
     # Loop through each mask and vectorise
     vector_masks = {}

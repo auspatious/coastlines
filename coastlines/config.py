@@ -36,22 +36,24 @@ class Options(BaseModel):
     include_nir: bool = True
 
     mask_with_hillshade: bool = True
+    hillshade_stac_catalog: str | None = None
+    hillshade_stac_collection: str | None = None
+
+    use_ensemble: bool = True
+    ensemble_model_list: list[str] | None = None
+    ensemble_model_rankings: str | None = None
+
     mask_with_esa_wc: bool = True
     use_combined_index: bool = False
 
     tide_centre: float = 0.0
     load_buffer_distance: int = 5000
 
-class HillShade(BaseModel):
-    stac_catalog: str | None = None
-    stac_collection: str | None = None
-
 class CoastlinesConfig(BaseModel):
     input: Input
     output: Output
     options: Options
 
-    hillshade: HillShade | None = None
     virtual_product: bool | None = None
     stac: STAC | None = None
     aws: AWS | None = None

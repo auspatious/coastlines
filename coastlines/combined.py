@@ -15,7 +15,6 @@ from odc.stac import configure_s3_access, load
 from pystac import ItemCollection
 from pystac_client import Client
 from s3path import S3Path
-# from dea_tools.datahandling import parallel_apply
 
 from coastlines.config import CoastlinesConfig
 
@@ -292,7 +291,8 @@ def terrain_shadow(
     threshold: float = 0.25,
     radius: int = 1,
 ):
-    item = items_by_time[ds.time.values.astype(str)[0].split(".")[0]]
+    ds = ds.squeeze()
+    item = items_by_time[ds.time.values.astype(str).split(".")[0]]
 
     elevation = item.properties["view:sun_elevation"]
     azimuth = item.properties["view:sun_azimuth"]
@@ -662,7 +662,7 @@ def process_coastlines(
     if config.options.mask_with_hillshade:
         warning_message = "No DEM found for this area. Skipping hillshadow mask"
         log.info("Running per-pixel terrain shadow masking")
-        if config.options.hillshade_stac_catalog is not None and config.options.hillshade_stac_catalog  is not None:
+        if config.options.hillshade_stac_catalog is not None and config.options.options_hillshade_stac_collection  is not None:
             try:
                 data = mask_pixels_by_hillshadow(data, items, config.options.hillshade_stac_catalog, config.options_hillshade_stac_collection)
             except CoastlinesException:

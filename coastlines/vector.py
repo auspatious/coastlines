@@ -358,7 +358,7 @@ def certainty_masking(yearly_ds, obs_threshold=5, stdev_threshold=0.3, sieve_siz
     Parameters:
     -----------
     yearly_ds : xarray.Dataset
-        An `xarray.Dataset` containing annual DEA Coastlines
+        An `xarray.Dataset` containing annual Coastlines
         rasters.
     obs_threshold : int, optional
         The minimum number of post-gapfilling Landsat observations

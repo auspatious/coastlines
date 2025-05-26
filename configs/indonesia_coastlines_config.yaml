@@ -36,7 +36,7 @@ options:
     - "TPXO9-atlas-v5-nc"
     - "TPXO10-atlas-v2-nc"
     - "GOT5.6"
-  ensemble_model_rankings: "https://files.auspatious.com/coastlines/indo_model_ranking.fgb"
+  ensemble_model_rankings: "https://files.auspatious.com/coastlines/indo_model_rank.fgb"
 
   mask_with_esa_wc: True
 

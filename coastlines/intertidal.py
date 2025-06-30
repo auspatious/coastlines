@@ -1,9 +1,8 @@
 import sys
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Union
 
 import click
-from geopandas import GeoDataFrame
 import xarray as xr
 from xarray import Dataset
 from datacube.utils.dask import start_local_dask
@@ -13,15 +12,12 @@ from pystac_client import Client
 import boto3
 from s3path import S3Path
 from intertidal.elevation import elevation
-from intertidal.exposure import exposure
+# from intertidal.exposure import exposure
 from dep_tools.namers import S3ItemPath
 from dep_tools.stac_utils import StacCreator, set_stac_properties
 from dep_tools.aws import write_stac_s3
 from dep_tools.writers import (
     AwsDsCogWriter,
-    AwsStacWriter,
-    LocalStacWriter,
-    LocalDsCogWriter,
 )
 
 from coastlines.config import CoastlinesConfig
@@ -285,19 +281,11 @@ def process_intertidal(
     log.info(f"{study_area} - {config.options.start_year} Processed.")
 
 @click.command("intertidal")
-@click.option(
-    "--config-path",
-    type=str,
-    required=True,
-    help="Location of a config file ",
-)
-@click.option(
-    "--study-area",
-    type=str,
-    required=True,
-    help="A string providing a study area ID (e.g. in the form "
-    "'47,5') to run the analysis on.",
-)
+@click_config_path
+@click_study_area
+@click_output_version
+@click_output_location
+
 @click.option(
     "--start-year",
     type=str,
@@ -319,18 +307,6 @@ def process_intertidal(
     "assigned to the dataset when indexed into Datacube.",
 )
 @click.option(
-    "--output-version",
-    type=str,
-    required=True,
-    help="The version number to use for output files and metadata (e.g. " "'0.0.1').",
-)
-@click.option(
-    "--output-location",
-    type=str,
-    help="The directory/location to output data and metadata; supports "
-    "Supports S3 locations only.",
-)
-@click.option(
     "--tide-data-location",
     type=str,
     default="/var/share/tide_models",
@@ -338,12 +314,7 @@ def process_intertidal(
     "'/var/share/tide_models'; for more information about the required "
     "directory structure, refer to `eo-tides.utils.list_models`.",
 )
-@click.option(
-    "--overwrite",
-    is_flag=True,
-    default=True,
-    help="Whether to overwrite previous outputs.",
-)
+@click_overwrite
 @click.option(
     "--load-early",
     is_flag=True,

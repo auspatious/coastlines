@@ -20,8 +20,6 @@ from dep_tools.writers import (
     AwsDsCogWriter,
 )
 
-from coastlines.config import CoastlinesConfig
-
 from coastlines.utils import (
     CoastlinesException,
     click_config_path,

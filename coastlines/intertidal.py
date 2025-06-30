@@ -244,7 +244,7 @@ def process_intertidal(
         dataset_id="intertidal",
         version=output_version,
         time=config.options.label_year,
-        prefix="indo",
+        prefix="/coastlines/indo/indo",
     )
     stac_document = itempath.stac_path(study_area)
     print(stac_document)

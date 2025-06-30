@@ -28,7 +28,7 @@ REQUIRED = [
     "mapclassify",
     "numpy",
     "odc-geo",
-    "odc-stac==0.4.0rc4",
+    "odc-stac",
     "odc_ui",
     "pandas",
     "pyarrow",
@@ -49,6 +49,8 @@ REQUIRED = [
     "tqdm>=4.66.3",
     "xarray",
     "pyyaml",
+    "dea_intertidal @ git+https://github.com/GeoscienceAustralia/dea-intertidal.git",
+    "dep-tools @ git+https://github.com/digitalearthpacific/dep-tools.git",
 ]
 
 # Package metadata
@@ -80,6 +82,7 @@ setup_kwargs = {
             "coastlines-print-tiles = coastlines.print_tiles:cli",
             "coastlines-combined = coastlines.combined:cli",
             "coastlines-merge = coastlines.merge_tiles:cli",
+            "intertidal = coastlines.intertidal:cli",
         ]
     },
 }

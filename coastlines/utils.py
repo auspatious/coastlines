@@ -15,6 +15,7 @@ from xarray import Dataset
 from yaml import safe_load
 
 from coastlines.config import CoastlinesConfig
+from coastlines.config import IntertidalConfig
 
 from dea_tools.spatial import subpixel_contours
 
@@ -64,6 +65,19 @@ def load_config(config_path: str) -> CoastlinesConfig:
         loaded = safe_load(f)
         return CoastlinesConfig(**loaded)
 
+def load_intertidal_config(config_path: str) -> IntertidalConfig:
+    """
+    Load a IntertidalConfig object from a YAML configuration file.
+
+    Parameters:
+        config_path (str): The path to the YAML configuration file.
+
+    Returns:
+        IntertidalConfig: The loaded IntertidalConfig object.
+    """
+    with fsspec.open(config_path, mode="r") as f:
+        loaded = safe_load(f)
+        return IntertidalConfig(**loaded)
 
 def load_json(grid_path: str) -> GeoDataFrame:
     gridcell_gdf = gpd.read_file(grid_path).to_crs(epsg=4326).set_index("id")

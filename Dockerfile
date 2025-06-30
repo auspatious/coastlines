@@ -45,13 +45,21 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
     --no-binary rasterio \
     --no-binary fiona
 
+# Add in some external packages without dependancies (workaround for the moment)
+RUN python -m pip install \ 
+    git+https://github.com/GeoscienceAustralia/dea-intertidal.git \
+    --no-dependencies \
+    && python -m pip install \ 
+    git+https://github.com/digitalearthpacific/dep-tools.git \
+    --no-dependencies
+
 # Set up a nice workdir and add the live code
 ENV APPDIR=/code
 RUN mkdir -p $APPDIR
 WORKDIR $APPDIR
 ADD . $APPDIR
 
-RUN python -m pip install .
+RUN python -m pip install . --no-dependencies
 
 CMD ["python", "--version"]
 

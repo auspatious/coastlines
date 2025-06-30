@@ -57,3 +57,35 @@ class CoastlinesConfig(BaseModel):
     virtual_product: bool | None = None
     stac: STAC | None = None
     aws: AWS | None = None
+
+class IntertidalInput(BaseModel):
+    grid_path: str
+
+
+class IntertidalOutput(BaseModel):
+    location: str
+    crs: str = "EPSG:4326"
+
+
+class IntertidalSTAC(BaseModel):
+    stac_api_url: str
+    stac_collections: dict[str,str]
+
+class IntertidalOptions(BaseModel):
+    start_year: int = 2020
+    end_year: int = 2022
+    label_year: int = 2021
+
+    tide_model: str = "FES2014"
+
+    use_ensemble: bool = True
+    ensemble_model_list: list[str] | None = None
+    ensemble_model_rankings: str | None = None
+
+class IntertidalConfig(BaseModel):
+    input: IntertidalInput
+    output: IntertidalOutput
+    options: IntertidalOptions
+
+    stac: IntertidalSTAC | None = None
+    aws: AWS | None = None

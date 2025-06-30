@@ -1,0 +1,33 @@
+input:
+  grid_path: "data/raw/indonesia_tiles.geojson"
+  modifications_path: "data/raw/empty_modifications.geojson"
+
+output:
+  location: "auspatious-matt-temp"
+  crs: "EPSG:32651"
+
+stac:
+  stac_api_url: "https://earth-search.aws.element84.com/v1"
+  stac_collections:
+    ls: "landsat-c2-l2"
+    s2: "sentinel-2-l2a"
+
+options:
+  start_year: 2020
+  end_year: 2022
+  label_year: 2021
+
+  tide_model: "ensemble"
+  use_ensemble: True
+  ensemble_model_list: 
+    - "FES2014"
+    - "FES2022"
+    - "EOT20"
+    - "TPXO9-atlas-v5-nc"
+    - "TPXO10-atlas-v2-nc"
+    - "GOT5.6"
+  ensemble_model_rankings: "https://files.auspatious.com/coastlines/indo_model_rank.fgb"
+
+aws:
+  aws_unsigned: False
+  aws_request_payer: True

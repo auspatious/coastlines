@@ -1,4 +1,4 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.9.0
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
 
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
@@ -44,6 +44,14 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir -r /tmp/requirements.txt \
     --no-binary rasterio \
     --no-binary fiona
+
+# Add in some external packages without dependancies (workaround for the moment)
+RUN python -m pip install \ 
+    git+https://github.com/GeoscienceAustralia/dea-intertidal.git \
+    --no-dependencies \
+    && python -m pip install \ 
+    git+https://github.com/digitalearthpacific/dep-tools.git \
+    --no-dependencies
 
 # Set up a nice workdir and add the live code
 ENV APPDIR=/code

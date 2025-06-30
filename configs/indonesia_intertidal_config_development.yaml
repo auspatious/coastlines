@@ -3,7 +3,7 @@ input:
   modifications_path: "data/raw/empty_modifications.geojson"
 
 output:
-  location: "auspatious-matt-temp"
+  location: "easi-asia-dc-data-projects"
   crs: "EPSG:32651"
 
 stac:

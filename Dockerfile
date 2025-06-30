@@ -59,7 +59,7 @@ RUN mkdir -p $APPDIR
 WORKDIR $APPDIR
 ADD . $APPDIR
 
-RUN python -m pip install .
+RUN python -m pip install . --no-dependencies
 
 CMD ["python", "--version"]
 

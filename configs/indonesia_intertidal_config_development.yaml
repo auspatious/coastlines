@@ -13,9 +13,9 @@ stac:
     s2: "sentinel-2-l2a"
 
 options:
-  start_year: 2020
-  end_year: 2022
-  label_year: 2021
+  start_year: 2022
+  end_year: 2024
+  label_year: 2023
 
   tide_model: "ensemble"
   use_ensemble: True

@@ -789,7 +789,7 @@ def cli(
     load_early,
 ):
     # Load analysis params from config file
-    config = load_config(config_path)
+    config = load_config(config_path, "coastlines")
 
     log = configure_logging("Coastlines")
     log.info(

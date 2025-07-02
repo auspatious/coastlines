@@ -1,9 +1,9 @@
 input:
   grid_path: "https://raw.githubusercontent.com/auspatious/coastlines/main/data/raw/indonesia_tiles.geojson"
-  modifications_path: "https://raw.githubusercontent.com/auspatious/coastlines/main/data/raw/empty_modifications.geojson"
+  organisation: "big"
 
 output:
-  location: "easi-asia-dc-data-projects"
+  location: "s3://easi-asia-dc-data-projects/coastlines" 
   crs: "EPSG:32651"
 
 stac:
@@ -27,6 +27,9 @@ options:
     - "TPXO10-atlas-v2-nc"
     - "GOT5.6"
   ensemble_model_rankings: "https://files.auspatious.com/coastlines/indo_model_rank.fgb"
+
+  use_exposure_offsets: False
+  modelled_freq: 3h
 
 aws:
   aws_unsigned: False

@@ -3,7 +3,7 @@ input:
   organisation: "big"
 
 output:
-  location: "s3://easi-asia-dc-data-projects/coastlines" 
+  location: "s3://easi-asia-dc-data-projects/coastlines"
   crs: "EPSG:32651"
 
 stac:

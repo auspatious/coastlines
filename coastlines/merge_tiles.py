@@ -192,7 +192,7 @@ def write_files(
 @click_output_version
 def cli(config_path, output_version):
     # Set up
-    config = load_config(config_path)
+    config = load_config(config_path, "coastlines")
     log = configure_logging()
 
     log.info(f"Merging files from {config.output.location}")

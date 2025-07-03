@@ -51,33 +51,27 @@ def configure_logging(name: str = "Coastlines") -> logging.Logger:
     return logger
 
 
-def load_config(config_path: str) -> CoastlinesConfig:
+def load_config(config_path: str, config_type: str = "coastlines") -> CoastlinesConfig | IntertidalConfig:
     """
-    Load a CoastlinesConfig object from a YAML configuration file.
+    Load a CoastlinesConfig or IntertidalConfigobject from a YAML 
+    configuration file.
 
     Parameters:
         config_path (str): The path to the YAML configuration file.
+        config_type (str): The type of config.  Can be 'coastline' or 'intertidal'
 
     Returns:
-        CoastlinesConfig: The loaded CoastlinesConfig object.
+        CoastlinesConfig: The loaded CoastlinesConfig object OR 
+        IntertidalConfig: The loaded IntertidalConfig object
     """
     with fsspec.open(config_path, mode="r") as f:
         loaded = safe_load(f)
-        return CoastlinesConfig(**loaded)
+        if config_type == "coastlines":
+            config =  CoastlinesConfig(**loaded)
+        else:
+            config = IntertidalConfig(**loaded)
 
-def load_intertidal_config(config_path: str) -> IntertidalConfig:
-    """
-    Load a IntertidalConfig object from a YAML configuration file.
-
-    Parameters:
-        config_path (str): The path to the YAML configuration file.
-
-    Returns:
-        IntertidalConfig: The loaded IntertidalConfig object.
-    """
-    with fsspec.open(config_path, mode="r") as f:
-        loaded = safe_load(f)
-        return IntertidalConfig(**loaded)
+        return config
 
 def load_json(grid_path: str) -> GeoDataFrame:
     gridcell_gdf = gpd.read_file(grid_path).to_crs(epsg=4326).set_index("id")
@@ -317,7 +311,6 @@ def extract_contours(
     contour_gdf = contour_gdf.set_index("year")
 
     return contour_gdf
-
 
 click_config_path = click.option(
     "--config-path",

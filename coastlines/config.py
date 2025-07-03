@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class Input(BaseModel):
+class CoastlinesInput(BaseModel):
     grid_path: str
     modifications_path: str
     geomorphology_path: str = "data/raw/empty_modifications.geojson"
@@ -12,7 +12,7 @@ class Output(BaseModel):
     crs: str = "EPSG:4326"
 
 
-class STAC(BaseModel):
+class CoastlinesSTAC(BaseModel):
     stac_api_url: str
     stac_collections: list[str]
     lower_scene_limit: int
@@ -24,7 +24,7 @@ class AWS(BaseModel):
     aws_unsigned: bool = False
 
 
-class Options(BaseModel):
+class CoastlinesOptions(BaseModel):
     start_year: int = 1985
     end_year: int = 2023
     baseline_year: int = 2021
@@ -49,27 +49,26 @@ class Options(BaseModel):
     tide_centre: float = 0.0
     load_buffer_distance: int = 5000
 
+
 class CoastlinesConfig(BaseModel):
-    input: Input
+    input: CoastlinesInput
     output: Output
-    options: Options
+    options: CoastlinesOptions
 
     virtual_product: bool | None = None
-    stac: STAC | None = None
+    stac: CoastlinesSTAC | None = None
     aws: AWS | None = None
+
 
 class IntertidalInput(BaseModel):
     grid_path: str
-
-
-class IntertidalOutput(BaseModel):
-    location: str
-    crs: str = "EPSG:4326"
+    organisation: str | None = None
 
 
 class IntertidalSTAC(BaseModel):
     stac_api_url: str
     stac_collections: dict[str,str]
+
 
 class IntertidalOptions(BaseModel):
     start_year: int = 2020
@@ -82,9 +81,12 @@ class IntertidalOptions(BaseModel):
     ensemble_model_list: list[str] | None = None
     ensemble_model_rankings: str | None = None
 
+    use_exposure_offsets: bool = True
+    modelled_freq: str = "3h"
+
 class IntertidalConfig(BaseModel):
     input: IntertidalInput
-    output: IntertidalOutput
+    output: Output
     options: IntertidalOptions
 
     stac: IntertidalSTAC | None = None

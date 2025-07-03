@@ -12,13 +12,14 @@ from pystac_client import Client
 import boto3
 from s3path import S3Path
 from intertidal.elevation import elevation
-# from intertidal.exposure import exposure
+from intertidal.exposure import exposure
 from dep_tools.namers import S3ItemPath
 from dep_tools.stac_utils import StacCreator, set_stac_properties
 from dep_tools.aws import write_stac_s3
 from dep_tools.writers import (
     AwsDsCogWriter,
 )
+
 
 from coastlines.utils import (
     CoastlinesException,
@@ -29,7 +30,7 @@ from coastlines.utils import (
     click_study_area,
     configure_logging,
     get_study_site_geometry,
-    load_intertidal_config,
+    load_config,
 )
 
 def sanitise_tile_id(tile_id: str, zero_pad: bool = True) -> str:
@@ -83,7 +84,7 @@ def get_s2_ls(
         collections=[ls_collection],
         intersects=aoi,
         datetime=datetime,
-        query={"eo:cloud_cover": {"lt": 50}},
+        query={"eo:cloud_cover": {"lt": cloud_cover}},
     ).item_collection()
 
     # Search for Sentinel-2 items
@@ -91,7 +92,7 @@ def get_s2_ls(
     collections=[s2_collection],
     intersects=aoi,
     datetime=datetime,
-    query={"eo:cloud_cover": {"lt": 50}},
+    query={"eo:cloud_cover": {"lt": cloud_cover}},
     ).item_collection()
 
     common_options = {
@@ -162,28 +163,30 @@ def get_evelation(ds: Dataset, tide_model: str, tide_model_dir: str, ensemble_mo
     return dse
 
 
-# def get_exposure(ds: Dataset, year) -> Dataset:
-#     # Exposure variables
-#     modelled_freq = "3h"  # Frequency to run tidal model e.g '30min' or '1h'
-#     filters = None  # Exposure filters eg None, ['Dry', 'Neap_low']
-#     filters_combined = None  # Must be a list of tuples containing one temporal and spatial filter each, eg None or [('Einter','Lowtide')]
+def get_exposure(ds: Dataset, year, tide_model: str, tide_model_dir: str, ensemble_models: list, ranking_points: str, modelled_freq: str = "3h") -> Dataset:
 
-#     exposure_filters, modelledtides_ds = exposure(
-#         dem=ds.elevation,
-#         start_date=f"{year}-01-01",
-#         end_date=f"{year}-12-31",
-#         modelled_freq=modelled_freq,
-#         tide_model=tide_model,
-#         tide_model_dir=tide_model_dir,
-#         filters=filters,
-#         filters_combined=filters_combined,
-#     )
+    # Exposure variables
+    filters = None  # Exposure filters eg None, ['Dry', 'Neap_low']
+    filters_combined = None  # Must be a list of tuples containing one temporal and spatial filter each, eg None or [('Einter','Lowtide')]
 
-#     # Write each exposure output as new variables in the main dataset
-#     for x in exposure_filters.data_vars:
-#         ds[f"exposure_{x}"] = exposure_filters[x]
+    exposure_filters, modelledtides_ds = exposure(
+        dem=ds.elevation,
+        start_date=f"{year}-01-01",
+        end_date=f"{year}-12-31",
+        modelled_freq=modelled_freq,
+        tide_model=tide_model,
+        tide_model_dir=tide_model_dir,
+        filters=filters,
+        filters_combined=filters_combined,
+        ensemble_models=ensemble_models,
+        ranking_points=ranking_points
+    )
 
-#     return ds
+    # Write each exposure output as new variables in the main dataset
+    for x in exposure_filters.data_vars:
+        ds[f"exposure_{x}"] = exposure_filters[x]
+
+    return ds
 
 def cleanup(ds: Dataset) -> Dataset:
     ds = ds.drop_vars("qa_count_clear")
@@ -193,6 +196,12 @@ def cleanup(ds: Dataset) -> Dataset:
     # ds = ds.rename_vars({"exposure_unfiltered": "exposure"})
 
     return ds
+
+def split_s3_path(s3_path):
+    path_parts=s3_path.replace("s3://","").split("/")
+    bucket=path_parts.pop(0)
+    key="/".join(path_parts)
+    return bucket, key
 
 def process_intertidal(
     config: dict,
@@ -206,6 +215,7 @@ def process_intertidal(
     # Study site geometry and config parsing
     studyarea_gdf = get_study_site_geometry(config.input.grid_path, study_area)
     geom = Geometry(studyarea_gdf.loc[study_area].geometry, crs=studyarea_gdf.crs)
+    run_id = f"[{output_version}] [{config.options.label_year}] [{study_area}]"
     log.info(f"Loaded geometry for study area {study_area}")
 
     log.info("Load satellite imagery")
@@ -232,22 +242,40 @@ def process_intertidal(
         ranking_points=config.options.ensemble_model_rankings,
     )
 
+    # exposure
+    if config.options.use_exposure_offsets:
+        log.info(f"{run_id}: Calculating Intertidal Exposure")
+
+        ds = get_exposure(
+            ds, 
+            year=config.options.label_year,
+            tide_model=config.options.tide_model, 
+            tide_model_dir=tide_data_location,
+            ensemble_models=config.options.ensemble_model_list,
+            ranking_points=config.options.ensemble_model_rankings,
+            modelled_freq=config.options.modelled_freq
+        )
+    else:
+        log.info(f"{run_id}: Skipping Exposure and spread/offsets calculation")
+
     # cleanup
     ds = cleanup(ds)
 
     aws_client = boto3.client("s3")
+ 
+    bucket, bucket_prefix = split_s3_path(output_location)
 
      # itempath
     itempath = S3ItemPath(
-        bucket=output_location,
+        bucket=bucket,
         sensor="s2ls",
         dataset_id="intertidal",
         version=output_version,
         time=config.options.label_year,
-        prefix="coastlines/indo/indo",
+        prefix=config.input.organisation,
+        bucket_prefix=bucket_prefix,
     )
     stac_document = itempath.stac_path(study_area)
-    print(stac_document)
     
     # write externally
     output_data = set_stac_properties(ndwi, ds)
@@ -268,7 +296,7 @@ def process_intertidal(
     )
 
     stac_item = stac_creator.process(output_data, study_area)
-    write_stac_s3(stac_item, stac_document, output_location)
+    write_stac_s3(stac_item, stac_document, bucket)
 
     if paths is not None:
         log.info(f"Completed writing to {paths[-1]}")
@@ -333,7 +361,7 @@ def cli(
     load_early,
 ):
     # Load analysis params from config file
-    config = load_intertidal_config(config_path)
+    config = load_config(config_path, "intertidal")
 
     if start_year is None:
         start_year = config.options.start_year
@@ -344,28 +372,33 @@ def cli(
 
     log = configure_logging("Intertidal")
     log.info(
-        f"Starting work on study area {study_area} for years {config.options.start_year}-{config.options.end_year}"
+        f"Starting work on study area {study_area} for year {config.options.label_year}"
     )
 
     if output_location is None:
         output_location = config.output.location
 
     log.info("Checking output location")
-    if overwrite is False:
-        # We don't want to overwrite, so see if we've done this work already
-        output_contours = get_output_path(
-            output_location, output_version, study_area, "contours", "parquet"
-        )
-        output_points = get_output_path(
-            output_location, output_version, study_area, "points", "parquet"
-        )
+    # <TODO: Rewrite this check>
+    # if overwrite is False:
+    #     # We don't want to overwrite, so see if we've done this work already
+    #     output_stac = ()
+        
+    #     # get_output_path(
+    #     #     output_location, output_version, study_area, "contours", "parquet"
+    #     # )
+    #     output_tif = ()
+        
+    #     # get_output_path(
+    #     #     output_location, output_version, study_area, "points", "parquet"
+    #     # )
 
-        # This function works for both S3 and local paths
-        if output_contours.exists() and output_points.exists():
-            log.info(
-                f"Found existing output files at {output_location}. Skipping processing."
-            )
-            sys.exit(0)
+    #     # This function works for both S3 and local paths
+    #     if output_stac.exists() and output_tif.exists():
+    #         log.info(
+    #             f"Found existing output files at {output_location}. Skipping processing."
+    #         )
+    #         sys.exit(0)
 
     log.info("Checking configuration")
     if config.stac is None:

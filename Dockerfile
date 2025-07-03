@@ -50,7 +50,7 @@ RUN python -m pip install \
     git+https://github.com/GeoscienceAustralia/dea-intertidal.git \
     --no-dependencies \
     && python -m pip install \ 
-    git+https://github.com/lars-fillmore/dep-tools.git \
+    git+https://github.com/auspatious/dep-tools.git \
     --no-dependencies
 
 # Set up a nice workdir and add the live code

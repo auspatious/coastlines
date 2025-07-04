@@ -1,25 +1,23 @@
+import os
 import sys
 from pathlib import Path
 from typing import Union
 
+import boto3
 import click
 import xarray as xr
-from xarray import Dataset
 from datacube.utils.dask import start_local_dask
 from datacube.utils.geometry import Geometry
-from odc.stac import load, configure_s3_access
-from pystac_client import Client
-import boto3
-from s3path import S3Path
-from intertidal.elevation import elevation
-from intertidal.exposure import exposure
+from dep_tools.aws import write_stac_s3, object_exists
 from dep_tools.namers import S3ItemPath
 from dep_tools.stac_utils import StacCreator, set_stac_properties
-from dep_tools.aws import write_stac_s3
-from dep_tools.writers import (
-    AwsDsCogWriter,
-)
-
+from dep_tools.writers import AwsDsCogWriter
+from intertidal.elevation import elevation
+from intertidal.exposure import exposure
+from odc.stac import configure_s3_access, load
+from pystac_client import Client
+from s3path import S3Path
+from xarray import Dataset
 
 from coastlines.utils import (
     CoastlinesException,
@@ -32,6 +30,9 @@ from coastlines.utils import (
     get_study_site_geometry,
     load_config,
 )
+
+AWS_REGION = os.environ.get("AWS_REGION", "ap-southeast-2")
+
 
 def sanitise_tile_id(tile_id: str, zero_pad: bool = True) -> str:
     tile_parts = tile_id.split(",")
@@ -63,17 +64,16 @@ def get_output_path(
 
     return output_path
 
+
 def get_s2_ls(
-    aoi: Geometry, 
+    aoi: Geometry,
     catalog="https://earth-search.aws.element84.com/v1",
     ls_collection="landsat-c2-l2",
     s2_collection="sentinel-2-l2a",
     start_year="2020",
-    end_year="2022", 
-    cloud_cover=50, 
-    coastal_buffer=0.002
+    end_year="2022",
+    cloud_cover=50,
 ) -> tuple[Dataset, Dataset]:
-
     datetime = f"{start_year}/{end_year}"
 
     # # Connect to client
@@ -89,17 +89,17 @@ def get_s2_ls(
 
     # Search for Sentinel-2 items
     s2_items = client.search(
-    collections=[s2_collection],
-    intersects=aoi,
-    datetime=datetime,
-    query={"eo:cloud_cover": {"lt": cloud_cover}},
+        collections=[s2_collection],
+        intersects=aoi,
+        datetime=datetime,
+        query={"eo:cloud_cover": {"lt": cloud_cover}},
     ).item_collection()
 
     common_options = {
-    "chunks": {"x": 2048, "y": 2048},
-    "groupby": "solar_day",
-    "resampling": {"qa_pixel": "nearest", "SCL": "nearest", "*": "cubic"},
-    "fail_on_error": False,
+        "chunks": {"x": 2048, "y": 2048},
+        "groupby": "solar_day",
+        "resampling": {"qa_pixel": "nearest", "SCL": "nearest", "*": "cubic"},
+        "fail_on_error": False,
     }
 
     # Load Landsat with ODC STAC
@@ -139,6 +139,7 @@ def get_s2_ls(
 
     return ds_ls, ds_s2
 
+
 def get_ndwi(ds_ls: Dataset, ds_s2: Dataset) -> Dataset:
     # Convert to NDWI
     ndwi_ls = (ds_ls.green - ds_ls.nir08) / (ds_ls.green + ds_ls.nir08)
@@ -152,19 +153,32 @@ def get_ndwi(ds_ls: Dataset, ds_s2: Dataset) -> Dataset:
     return data
 
 
-def get_evelation(ds: Dataset, tide_model: str, tide_model_dir: str, ensemble_models: list, ranking_points: str) -> Dataset:
+def get_elevation(
+    ds: Dataset,
+    tide_model: str,
+    tide_model_dir: str,
+    ensemble_models: list,
+    ranking_points: str,
+) -> Dataset:
     dse, _ = elevation(
         ds,
         tide_model=tide_model,
         tide_model_dir=tide_model_dir,
         ensemble_models=ensemble_models,
-        ranking_points=ranking_points
+        ranking_points=ranking_points,
     )
     return dse
 
 
-def get_exposure(ds: Dataset, year, tide_model: str, tide_model_dir: str, ensemble_models: list, ranking_points: str, modelled_freq: str = "3h") -> Dataset:
-
+def get_exposure(
+    ds: Dataset,
+    year,
+    tide_model: str,
+    tide_model_dir: str,
+    ensemble_models: list,
+    ranking_points: str,
+    modelled_freq: str = "3h",
+) -> Dataset:
     # Exposure variables
     filters = None  # Exposure filters eg None, ['Dry', 'Neap_low']
     filters_combined = None  # Must be a list of tuples containing one temporal and spatial filter each, eg None or [('Einter','Lowtide')]
@@ -179,7 +193,7 @@ def get_exposure(ds: Dataset, year, tide_model: str, tide_model_dir: str, ensemb
         filters=filters,
         filters_combined=filters_combined,
         ensemble_models=ensemble_models,
-        ranking_points=ranking_points
+        ranking_points=ranking_points,
     )
 
     # Write each exposure output as new variables in the main dataset
@@ -187,6 +201,7 @@ def get_exposure(ds: Dataset, year, tide_model: str, tide_model_dir: str, ensemb
         ds[f"exposure_{x}"] = exposure_filters[x]
 
     return ds
+
 
 def cleanup(ds: Dataset) -> Dataset:
     ds = ds.drop_vars("qa_count_clear")
@@ -197,11 +212,13 @@ def cleanup(ds: Dataset) -> Dataset:
 
     return ds
 
+
 def split_s3_path(s3_path):
-    path_parts=s3_path.replace("s3://","").split("/")
-    bucket=path_parts.pop(0)
-    key="/".join(path_parts)
+    path_parts = s3_path.replace("s3://", "").split("/")
+    bucket = path_parts.pop(0)
+    key = "/".join(path_parts)
     return bucket, key
+
 
 def process_intertidal(
     config: dict,
@@ -210,7 +227,7 @@ def process_intertidal(
     output_location: str | None,
     tide_data_location: str,
     log: callable,
-    load_early: bool = True,
+    overwrite: bool = True,
 ):
     # Study site geometry and config parsing
     studyarea_gdf = get_study_site_geometry(config.input.grid_path, study_area)
@@ -220,12 +237,12 @@ def process_intertidal(
 
     log.info("Load satellite imagery")
     landsat_items, sentinel2_items = get_s2_ls(
-        aoi=geom, 
+        aoi=geom,
         catalog=config.stac.stac_api_url,
-        ls_collection=config.stac.stac_collections["ls"], 
-        s2_collection=config.stac.stac_collections["s2"], 
-        start_year=config.options.start_year, 
-        end_year=config.options.end_year
+        ls_collection=config.stac.stac_collections["ls"],
+        s2_collection=config.stac.stac_collections["s2"],
+        start_year=config.options.start_year,
+        end_year=config.options.end_year,
     )
 
     log.info("Calculating NDWI...")
@@ -234,9 +251,9 @@ def process_intertidal(
 
     # elevation
     log.info("Calculating elevation...")
-    ds = get_evelation(
-        ndwi, 
-        tide_model=config.options.tide_model, 
+    ds = get_elevation(
+        ndwi,
+        tide_model=config.options.tide_model,
         tide_model_dir=tide_data_location,
         ensemble_models=config.options.ensemble_model_list,
         ranking_points=config.options.ensemble_model_rankings,
@@ -247,13 +264,13 @@ def process_intertidal(
         log.info(f"{run_id}: Calculating Intertidal Exposure")
 
         ds = get_exposure(
-            ds, 
+            ds,
             year=config.options.label_year,
-            tide_model=config.options.tide_model, 
+            tide_model=config.options.tide_model,
             tide_model_dir=tide_data_location,
             ensemble_models=config.options.ensemble_model_list,
             ranking_points=config.options.ensemble_model_rankings,
-            modelled_freq=config.options.modelled_freq
+            modelled_freq=config.options.modelled_freq,
         )
     else:
         log.info(f"{run_id}: Skipping Exposure and spread/offsets calculation")
@@ -262,10 +279,10 @@ def process_intertidal(
     ds = cleanup(ds)
 
     aws_client = boto3.client("s3")
- 
+
     bucket, bucket_prefix = split_s3_path(output_location)
 
-     # itempath
+    # itempath
     itempath = S3ItemPath(
         bucket=bucket,
         sensor="s2ls",
@@ -276,8 +293,18 @@ def process_intertidal(
         bucket_prefix=bucket_prefix,
     )
     stac_document = itempath.stac_path(study_area)
-    
-    # write externally
+
+    log.info("Checking output location")
+    if overwrite is False:
+        # We don't want to overwrite, so see if we've done this work already
+        if object_exists(bucket, stac_document, client=aws_client):
+            log.info(f"Item already exists at {stac_document}")
+            # This is an exit with success
+            sys.exit(0)
+        else:
+            log.info(f"Item does not exist at {stac_document}, proceeding to write.")
+
+    # Write externally
     output_data = set_stac_properties(ndwi, ds)
 
     writer = AwsDsCogWriter(
@@ -292,7 +319,11 @@ def process_intertidal(
     paths = writer.write(output_data, study_area) + [stac_document]
 
     stac_creator = StacCreator(
-        itempath=itempath, remote=True, make_hrefs_https=False, with_raster=True
+        itempath=itempath,
+        remote=True,
+        make_hrefs_https=True,
+        with_raster=True,
+        aws_region=AWS_REGION,
     )
 
     stac_item = stac_creator.process(output_data, study_area)
@@ -306,12 +337,12 @@ def process_intertidal(
     # finish
     log.info(f"{study_area} - {config.options.start_year} Processed.")
 
+
 @click.command("intertidal")
 @click_config_path
 @click_study_area
 @click_output_version
 @click_output_location
-
 @click.option(
     "--start-year",
     type=str,
@@ -341,13 +372,6 @@ def process_intertidal(
     "directory structure, refer to `eo-tides.utils.list_models`.",
 )
 @click_overwrite
-@click.option(
-    "--load-early",
-    is_flag=True,
-    default=True,
-    help="Whether to load data early or use lazy loading.",
-)
-
 def cli(
     config_path,
     study_area,
@@ -358,7 +382,6 @@ def cli(
     output_location,
     tide_data_location,
     overwrite,
-    load_early,
 ):
     # Load analysis params from config file
     config = load_config(config_path, "intertidal")
@@ -377,28 +400,6 @@ def cli(
 
     if output_location is None:
         output_location = config.output.location
-
-    log.info("Checking output location")
-    # <TODO: Rewrite this check>
-    # if overwrite is False:
-    #     # We don't want to overwrite, so see if we've done this work already
-    #     output_stac = ()
-        
-    #     # get_output_path(
-    #     #     output_location, output_version, study_area, "contours", "parquet"
-    #     # )
-    #     output_tif = ()
-        
-    #     # get_output_path(
-    #     #     output_location, output_version, study_area, "points", "parquet"
-    #     # )
-
-    #     # This function works for both S3 and local paths
-    #     if output_stac.exists() and output_tif.exists():
-    #         log.info(
-    #             f"Found existing output files at {output_location}. Skipping processing."
-    #         )
-    #         sys.exit(0)
 
     log.info("Checking configuration")
     if config.stac is None:
@@ -428,7 +429,7 @@ def cli(
             output_location,
             tide_data_location,
             log,
-            load_early=load_early,
+            overwrite=overwrite,
         )
     except CoastlinesException as e:
         log.exception(f"Study area {study_area}: Failed to run process with error {e}")

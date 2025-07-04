@@ -321,7 +321,7 @@ def process_intertidal(
     stac_creator = StacCreator(
         itempath=itempath,
         remote=True,
-        make_hrefs_https=True,
+        make_hrefs_https=False,
         with_raster=True,
         aws_region=AWS_REGION,
     )

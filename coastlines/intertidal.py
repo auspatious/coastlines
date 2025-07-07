@@ -321,7 +321,8 @@ def process_intertidal(
     stac_creator = StacCreator(
         itempath=itempath,
         remote=True,
-        make_hrefs_https=False,
+        collection_url_root=config.input.collection_url,
+        make_hrefs_https=config.options.use_https_href_links,
         with_raster=True,
         aws_region=AWS_REGION,
     )

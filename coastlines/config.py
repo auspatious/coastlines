@@ -63,6 +63,7 @@ class CoastlinesConfig(BaseModel):
 class IntertidalInput(BaseModel):
     grid_path: str
     organisation: str | None = None
+    collection_url: str | None = None
 
 
 class IntertidalSTAC(BaseModel):
@@ -83,6 +84,8 @@ class IntertidalOptions(BaseModel):
 
     use_exposure_offsets: bool = True
     modelled_freq: str = "3h"
+
+    use_https_href_links: bool = True
 
 class IntertidalConfig(BaseModel):
     input: IntertidalInput

@@ -47,9 +47,6 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 
 # Add in some external packages without dependancies (workaround for the moment)
 RUN python -m pip install --no-cache-dir \ 
-    git+https://github.com/GeoscienceAustralia/dea-intertidal.git \
-    --no-dependencies
-RUN python -m pip install --no-cache-dir \ 
     git+https://github.com/auspatious/dep-tools.git \
     --no-dependencies
 

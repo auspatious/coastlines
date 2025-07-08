@@ -29,7 +29,7 @@ options:
     - "GOT5.6"
   ensemble_model_rankings: "https://files.auspatious.com/coastlines/indo_model_rank.fgb"
 
-  use_exposure_offsets: False
+  use_exposure_offsets: True
   modelled_freq: 3h
 
   use_https_href_links: False

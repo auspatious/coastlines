@@ -30,7 +30,7 @@ options:
   ensemble_model_rankings: "https://files.auspatious.com/coastlines/indo_model_rank.fgb"
 
   use_exposure_offsets: True
-  modelled_freq: 3h
+  modelled_freq: 4h
 
   use_https_href_links: False
 

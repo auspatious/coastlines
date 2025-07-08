@@ -175,7 +175,7 @@ def get_exposure(
     year,
     tide_model: str,
     tide_model_dir: str,
-    ensemble_models: list,
+    ensemble_models: list[str],
     ranking_points: str,
     modelled_freq: str = "3h",
 ) -> Dataset:

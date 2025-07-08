@@ -165,6 +165,8 @@ datacube[performance,s3]==1.9.5
     #   odc-ui
 datacube-ows==1.9.0
     # via dea-tools
+dea-intertidal @ git+https://github.com/GeoscienceAustralia/dea-intertidal.git
+    # via coastlines (setup.py)
 dea-tools==0.3.6
     # via coastlines (setup.py)
 decorator==5.2.1

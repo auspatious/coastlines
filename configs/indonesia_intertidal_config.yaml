@@ -4,7 +4,7 @@ input:
   collection_url: "https://stac.auspatious.com/collections"
 
 output:
-  location: "s3://auspatious-matt-temp/coastlines" 
+  location: "s3://easi-asia-dc-data-projects/coastlines" 
   crs: "EPSG:32651"
 
 stac:
@@ -30,7 +30,7 @@ options:
   ensemble_model_rankings: "https://files.auspatious.com/coastlines/indo_model_rank.fgb"
 
   use_exposure_offsets: True
-  modelled_freq: 4h
+  modelled_freq: 1h
 
   use_https_href_links: False
 

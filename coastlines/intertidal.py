@@ -6,6 +6,7 @@ from typing import Union
 import boto3
 import click
 import xarray as xr
+import numpy as np
 from datacube.utils.dask import start_local_dask
 from datacube.utils.geometry import Geometry
 from dep_tools.aws import write_stac_s3, object_exists
@@ -14,6 +15,8 @@ from dep_tools.stac_utils import StacCreator, set_stac_properties
 from dep_tools.writers import AwsDsCogWriter
 from intertidal.elevation import elevation
 from intertidal.exposure import exposure
+from intertidal.tidal_bias_offset import bias_offset
+from intertidal.io import prepare_for_export
 from odc.stac import configure_s3_access, load
 from pystac_client import Client
 from s3path import S3Path
@@ -159,15 +162,15 @@ def get_elevation(
     tide_model_dir: str,
     ensemble_models: list,
     ranking_points: str,
-) -> Dataset:
-    dse, _ = elevation(
+):
+    dse, tide_m = elevation(
         ds,
         tide_model=tide_model,
         tide_model_dir=tide_model_dir,
         ensemble_models=ensemble_models,
         ranking_points=ranking_points,
     )
-    return dse
+    return dse, tide_m
 
 
 def get_exposure(
@@ -178,7 +181,7 @@ def get_exposure(
     ensemble_models: list[str],
     ranking_points: str,
     modelled_freq: str = "3h",
-) -> Dataset:
+):
     # Exposure variables
     filters = None  # Exposure filters eg None, ['Dry', 'Neap_low']
     filters_combined = None  # Must be a list of tuples containing one temporal and spatial filter each, eg None or [('Einter','Lowtide')]
@@ -200,18 +203,7 @@ def get_exposure(
     for x in exposure_filters.data_vars:
         ds[f"exposure_{x}"] = exposure_filters[x]
 
-    return ds
-
-
-def cleanup(ds: Dataset) -> Dataset:
-    ds = ds.drop_vars("qa_count_clear")
-    ds = ds.drop_vars("qa_ndwi_corr")
-    ds = ds.drop_vars("qa_ndwi_freq")
-    ds = ds.drop_vars("elevation_uncertainty")
-    # ds = ds.rename_vars({"exposure_unfiltered": "exposure"})
-
-    return ds
-
+    return ds, modelledtides_ds
 
 def split_s3_path(s3_path):
     path_parts = s3_path.replace("s3://", "").split("/")
@@ -229,13 +221,19 @@ def process_intertidal(
     log: callable,
     overwrite: bool = True,
 ):
+    # Set output data types
+    custom_dtypes = {
+        "qa_ndwi_freq": (np.uint8, 255),
+        "qa_count_clear": (np.int16, -999),
+    }
+        
     # Study site geometry and config parsing
     studyarea_gdf = get_study_site_geometry(config.input.grid_path, study_area)
     geom = Geometry(studyarea_gdf.loc[study_area].geometry, crs=studyarea_gdf.crs)
     run_id = f"[{output_version}] [{config.options.label_year}] [{study_area}]"
-    log.info(f"Loaded geometry for study area {study_area}")
+    log.info(f"{run_id}: Loaded geometry for study area {study_area}")
 
-    log.info("Load satellite imagery")
+    log.info(f"{run_id}: Load satellite imagery")
     landsat_items, sentinel2_items = get_s2_ls(
         aoi=geom,
         catalog=config.stac.stac_api_url,
@@ -245,13 +243,13 @@ def process_intertidal(
         end_year=config.options.end_year,
     )
 
-    log.info("Calculating NDWI...")
+    log.info(f"{run_id}: Calculating NDWI...")
     ndwi = get_ndwi(landsat_items, sentinel2_items)
     ndwi = ndwi.compute()
 
     # elevation
-    log.info("Calculating elevation...")
-    ds = get_elevation(
+    log.info(f"{run_id}: Calculating elevation...")
+    ds, tide_m = get_elevation(
         ndwi,
         tide_model=config.options.tide_model,
         tide_model_dir=tide_data_location,
@@ -261,9 +259,10 @@ def process_intertidal(
 
     # exposure
     if config.options.use_exposure_offsets:
-        log.info(f"{run_id}: Calculating Intertidal Exposure")
+        log.info(f"{run_id}: Calculating intertidal exposure...")
 
-        ds = get_exposure(
+        # Calculate exposure
+        ds, modelledtides_ds = get_exposure(
             ds,
             year=config.options.label_year,
             tide_model=config.options.tide_model,
@@ -272,12 +271,36 @@ def process_intertidal(
             ranking_points=config.options.ensemble_model_rankings,
             modelled_freq=config.options.modelled_freq,
         )
+
+        # Rename unfiltered and set datatype
+        ds = ds.rename_vars({"exposure_unfiltered": "exposure"})
+
+        # Calculate spread and offsets
+        log.info(f"{run_id}: Calculating spread and offset...")
+        (
+            ds["ta_spread"],
+            ds["ta_offset_low"],
+            ds["ta_offset_high"],
+        ) = bias_offset(
+            tide_m=tide_m,
+            tide_cq=modelledtides_ds["unfiltered"],
+            lot_hot=False,
+            lat_hat=False,
+        )
+ 
+        # Set spread and offset data types
+        custom_dtypes["exposure"] = (np.uint8, 255)
+        custom_dtypes["ta_spread"] = (np.uint8, 255)
+        custom_dtypes["ta_offset_high"] = (np.uint8, 255)
+        custom_dtypes["ta_offset_low"] = (np.uint8, 255)
+
     else:
         log.info(f"{run_id}: Skipping Exposure and spread/offsets calculation")
-
-    # cleanup
-    ds = cleanup(ds)
-
+    
+    # Prepare data for export
+    ds["qa_ndwi_freq"] *= 100  # Convert frequency to %
+    ds = prepare_for_export(ds, custom_dtypes=custom_dtypes)  # sets correct dtypes and nodata
+    
     aws_client = boto3.client("s3")
 
     bucket, bucket_prefix = split_s3_path(output_location)
@@ -294,15 +317,15 @@ def process_intertidal(
     )
     stac_document = itempath.stac_path(study_area)
 
-    log.info("Checking output location")
+    log.info(f"{run_id}: Checking output location")
     if overwrite is False:
         # We don't want to overwrite, so see if we've done this work already
         if object_exists(bucket, stac_document, client=aws_client):
-            log.info(f"Item already exists at {stac_document}")
+            log.info(f"{run_id}: Item already exists at {stac_document}")
             # This is an exit with success
             sys.exit(0)
         else:
-            log.info(f"Item does not exist at {stac_document}, proceeding to write.")
+            log.info(f"{run_id}: Item does not exist at {stac_document}, proceeding to write.")
 
     # Write externally
     output_data = set_stac_properties(ndwi, ds)
@@ -316,6 +339,7 @@ def process_intertidal(
         client=aws_client,
     )
 
+    log.info(f"{run_id}: Writing cogs...")
     paths = writer.write(output_data, study_area) + [stac_document]
 
     stac_creator = StacCreator(
@@ -328,15 +352,16 @@ def process_intertidal(
     )
 
     stac_item = stac_creator.process(output_data, study_area)
+    log.info(f"{run_id}: Writing stac...")
     write_stac_s3(stac_item, stac_document, bucket)
 
     if paths is not None:
-        log.info(f"Completed writing to {paths[-1]}")
+        log.info(f"{run_id}: Completed writing to {paths[-1]}")
     else:
-        log.warning("No paths returned from writer")
+        log.warning(f"{run_id}: No paths returned from writer")
 
     # finish
-    log.info(f"{study_area} - {config.options.start_year} Processed.")
+    log.info(f"{run_id}: {study_area} - {config.options.start_year} Processed.")
 
 
 @click.command("intertidal")

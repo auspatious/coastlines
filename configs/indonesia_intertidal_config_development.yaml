@@ -34,8 +34,6 @@ options:
 
   use_https_href_links: False
 
-  use_https_href_links: False
-
 aws:
   aws_unsigned: False
   aws_request_payer: True

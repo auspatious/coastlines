@@ -4,7 +4,7 @@ input:
   geomorphology_path: "https://s3.ap-southeast-2.amazonaws.com/files.auspatious.com/coastlines/coastal_geomorphology.zip"
 
 output:
-  location: "s3://easi-asia-dc-data-projects/coastlines/indo/"
+  location: "s3://easi-asia-dc-data-projects/coastlines/big_ls_coastlines/"
   crs: "EPSG:32651"
 
 stac:

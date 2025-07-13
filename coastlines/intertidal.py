@@ -412,12 +412,12 @@ def cli(
     # Load analysis params from config file
     config = load_config(config_path, "intertidal")
 
-    if start_year is None:
-        start_year = config.options.start_year
-    if end_year is None:
-        end_year = config.options.end_year
-    if label_year is None:
-        end_year = config.options.label_year
+    if start_year is not None:
+        config.options.start_year = start_year
+    if end_year is not None:
+        config.options.end_year = end_year
+    if label_year is not None:
+        config.options.label_year = label_year
 
     log = configure_logging("Intertidal")
     log.info(

@@ -21,7 +21,7 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.9.3-105-g63697f5"
+        value: "0.9.3-109-gf236c3b"
       - name: result-version
         value: "0.0.3"
       - name: tiles-subset
@@ -30,6 +30,12 @@ spec:
         value: configs/indonesia_intertidal_config.yaml
       - name: overwrite
         value: "--no-overwrite"
+      - name: "start-year"
+        value: "2020"
+      - name: "end-year"
+        value: "2022"
+      - name: "label-year"
+        value: "2021"
   templates:
     - name: intertidal-dag
       dag:
@@ -57,6 +63,12 @@ spec:
                   value: "{{workflow.parameters.result-version}}"
                 - name: overwrite
                   value: "{{workflow.parameters.overwrite}}"
+                - name: start-year
+                  value: "{{workflow.parameters.start-year}}"
+                - name: end-year
+                  value: "{{workflow.parameters.end-year}}"
+                - name: label-year
+                  value: "{{workflow.parameters.label-year}}"
 
     - name: generate
       inputs:
@@ -83,6 +95,9 @@ spec:
           - name: config
           - name: result-version
           - name: overwrite
+          - name: start-year
+          - name: end-year
+          - name: label-year
       retryStrategy:
         limit: 2
         retryPolicy: Always
@@ -113,4 +128,7 @@ spec:
               --study-area={{inputs.parameters.id}} \
               --tide-data-location="/tmp/tide_models/" \
               --output-version={{inputs.parameters.result-version}} \
-              {{inputs.parameters.overwrite}}
+              {{inputs.parameters.overwrite}} \
+              --start-year={{inputs.parameters.start-year}} \
+              --end-year={{inputs.parameters.end-year}} \
+              --label-year={{inputs.parameters.label-year}}         

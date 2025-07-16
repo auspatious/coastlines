@@ -21,6 +21,9 @@ coastal change that can be run on Landsat data from 5 through to 8 and 9.
 
 The product combines satellite data with tidal modelling to map the typical location of the coastline at mean sea level for each year. The product enables trends of coastal erosion and accretion to be examined annually at both a local and continental scale, and for patterns of coastal change to be mapped historically and updated regularly as data continues to be acquired. This allows current rates of coastal change to be compared with that observed in previous years or decades.
 
+**Intertidal** is a global data process that produces an annual digital elevation model (DEM) of the 
+coastline intertidal area (the area between the low and high tides) using both Landsat and Sentinel-2 data.
+
 ## Repository code
 
 Code in this repository works using [odc-stac](https://github.com/opendatacube/odc-stac)
@@ -36,17 +39,25 @@ git clone https://github.com/auspatious/coastlines.git
 
 #### Tidal model
 
-Coastlines uses either the FES2014 or FES2022 tidal models to account for the influence of tide
-on shoreline positions. To install this tidal model, follow the
+Coastlines uses pyTMD compatiable tide models to account for the influence of tide
+on shoreline positions. To install tidal models, follow the
 [Setting up tidal models for DEA Coastlines guide on the Wiki](https://github.com/GeoscienceAustralia/dea-coastlines/wiki/Setting-up-tidal-models-for-DEA-Coastlines).
 
 ### Running a Coastlines analysis using the command-line interface (CLI)
 
 There are three commands that can be used, as follows:
 
-* `print-tiles` will take a config file and an optional subset, and will echo all the tile-ids to the output. This is used to create a list of work that needs to be done.
+* `print-tiles` will take a config file, a config type and an optional subset, and will echo all the tile-ids to the output. This is used to create a list of work that needs to be done.
 * `coastlines-combined` runs the full Coastlines process, from setting up raster data and cleaning through to contour extraction.
 * `coastlines-merge` will merge results from the tile-based processing into a single combined file.
+
+### Running a Intertidal analysis using the command-line interface (CLI)
+
+There are two commands that can be used, as follows:
+
+* `print-tiles` will take a config file, a config type and an optional subset, and will echo all the tile-ids to the output. This is used to create a list of work that needs to be done.
+* `intertidal` runs the full Intertidal process, from setting up raster data and cleaning through to the creation of the DEM.
+
 
 ## Credits
 

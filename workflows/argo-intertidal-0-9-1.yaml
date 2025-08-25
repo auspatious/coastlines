@@ -21,7 +21,7 @@ spec:
   arguments:
     parameters:
       - name: image-tag
-        value: "0.9.3-109-gf236c3b"
+        value: "0.9.3-111-g4a18d36"
       - name: result-version
         value: "0.0.3"
       - name: tiles-subset
